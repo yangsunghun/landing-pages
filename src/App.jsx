@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import GlobeScene from './experience/Globe'
 import { bindPainter } from './experience/links'
+import { CONCEPTS } from './experience/concepts'
 import { REGIONS } from './experience/regions'
 import { dossierOpen, nudgeTarget, setTarget, subscribeJourney } from './experience/journey'
 
@@ -122,8 +123,13 @@ function paintLinks(root, points) {
 
 export default function App() {
   const [progress, setProgress] = useState(0)
+  const [concept, setConcept] = useState(CONCEPTS[0].id)
   const field = useRef(null)
   useJourneyInput()
+
+  useEffect(() => {
+    document.documentElement.dataset.concept = concept
+  }, [concept])
 
   useEffect(() => subscribeJourney(setProgress), [])
   useEffect(() => bindPainter((points) => paintLinks(field.current, points)), [])
@@ -141,7 +147,7 @@ export default function App() {
       >
         <color attach="background" args={['#000000']} />
         <Suspense fallback={null}>
-          <GlobeScene />
+          <GlobeScene concept={concept} />
         </Suspense>
       </Canvas>
       <div className="veil" style={{ opacity: 0.75 + open * 0.25 }} />
@@ -151,9 +157,24 @@ export default function App() {
         <em>APHELION</em>
       </button>
 
-      <button className="jump" type="button" onClick={() => setTarget(1)}>
-        지역
-      </button>
+      <div className="tools">
+        <div className="concepts" role="group" aria-label="행성 형태">
+          {CONCEPTS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={concept === item.id ? 'is-on' : ''}
+              aria-pressed={concept === item.id}
+              onClick={() => setConcept(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <button className="jump" type="button" onClick={() => setTarget(1)}>
+          지역
+        </button>
+      </div>
 
       <p className="hint" style={{ opacity: hint }}>
         스크롤
@@ -187,19 +208,30 @@ export default function App() {
       </div>
 
       <p className="credit" style={{ opacity: 1 - open * 0.85 }}>
-        구체 텍스처{' '}
-        <a href="https://github.com/dataarts/webgl-globe" target="_blank" rel="noreferrer">
-          WebGL Globe
-        </a>
-        {' · '}
-        <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
-          Apache 2.0
-        </a>
+        {concept === 'graticule' ? (
+          <>
+            해안선{' '}
+            <a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">
+              Natural Earth
+            </a>
+          </>
+        ) : (
+          <>
+            구체 텍스처{' '}
+            <a href="https://github.com/dataarts/webgl-globe" target="_blank" rel="noreferrer">
+              WebGL Globe
+            </a>
+            {' · '}
+            <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
+              Apache 2.0
+            </a>
+          </>
+        )}
       </p>
 
       <p className="sr-only">
-        스크롤하면 구체가 다가오며 회전하고, 표면의 지점에서 지역 기록이 선으로 이어집니다. 지역
-        버튼으로 끝까지 진행할 수 있습니다.
+        스크롤하면 구체가 다가오며 회전하고, 표면의 지점에서 지역 기록이 선으로 이어집니다. 대기와
+        경위선 버튼으로 행성 형태를 바꿀 수 있습니다.
       </p>
       <Loader />
     </>

@@ -58,7 +58,7 @@ button {
 }
 
 .mark,
-.jump,
+.tools,
 .hint,
 .credit,
 .loader {
@@ -88,10 +88,45 @@ button {
   color: var(--muted);
 }
 
-.jump {
+.tools {
   position: fixed;
-  top: 26px;
+  top: 22px;
   right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.concepts {
+  display: flex;
+  gap: 6px;
+}
+
+.concepts button {
+  padding: 7px 12px;
+  border: 1px solid rgba(231, 238, 246, 0.2);
+  border-radius: 999px;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: rgba(231, 238, 246, 0.5);
+}
+
+.concepts button.is-on {
+  color: #f7fbff;
+  border-color: rgba(247, 251, 255, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-concept='graticule'] .wire-base {
+  stroke: rgba(255, 255, 255, 0.78);
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.45));
+}
+
+html[data-concept='graticule'] .card {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.jump {
   padding: 10px 16px;
   border: 1px solid rgba(190, 230, 245, 0.28);
   border-radius: 999px;
@@ -309,8 +344,8 @@ button {
     left: 16px;
   }
 
-  .jump {
-    top: 16px;
+  .tools {
+    top: 14px;
     right: 16px;
   }
 

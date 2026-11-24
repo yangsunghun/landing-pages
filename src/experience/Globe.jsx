@@ -6,12 +6,57 @@ import {
   BackSide,
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   MathUtils,
   Vector3,
 } from 'three'
 import { commitProgress, diveAmount, dossierOpen, getJourney, regionOpen } from './journey'
+import { buildCoastPositions, buildGraticulePositions, buildLandCanvas } from './graticule'
 import { pushAnchors } from './links'
 import { LOCK_Y, REGIONS, anchorPosition } from './regions'
+
+const vectorLineVertex = /* glsl */ `
+  varying float vFront;
+  void main() {
+    vec3 viewNormal = normalize(mat3(modelViewMatrix) * normalize(position));
+    vFront = viewNormal.z;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const vectorLineFragment = /* glsl */ `
+  uniform float uStrength;
+  uniform float uBack;
+  varying float vFront;
+  void main() {
+    float front = smoothstep(-0.05, 0.4, vFront);
+    float alpha = mix(uBack, uStrength, front);
+    gl_FragColor = vec4(vec3(0.9, 0.93, 0.96), alpha);
+    #include <colorspace_fragment>
+  }
+`
+
+const landVertex = /* glsl */ `
+  varying vec2 vUv;
+  varying vec3 vViewNormal;
+  void main() {
+    vUv = uv;
+    vViewNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const landFragment = /* glsl */ `
+  uniform sampler2D uMap;
+  varying vec2 vUv;
+  varying vec3 vViewNormal;
+  void main() {
+    float mask = texture2D(uMap, vUv).r;
+    float front = smoothstep(-0.05, 0.35, vViewNormal.z);
+    gl_FragColor = vec4(1.0, 1.0, 1.0, mask * mix(0.08, 0.34, front));
+    #include <colorspace_fragment>
+  }
+`
 
 const RADIUS = 1.48
 const TURNS = 3
@@ -198,10 +243,66 @@ function Halos() {
   )
 }
 
-function GlobeScene() {
+function VectorLines({ positions, strength, back }) {
+  const geometry = useMemo(() => {
+    const next = new BufferGeometry()
+    next.setAttribute('position', new BufferAttribute(positions, 3))
+    return next
+  }, [positions])
+
+  return (
+    <lineSegments geometry={geometry}>
+      <shaderMaterial
+        vertexShader={vectorLineVertex}
+        fragmentShader={vectorLineFragment}
+        uniforms={{
+          uStrength: { value: strength },
+          uBack: { value: back },
+        }}
+        transparent
+        depthWrite={false}
+        depthTest={false}
+        toneMapped={false}
+      />
+    </lineSegments>
+  )
+}
+
+function GraticuleGlobe() {
+  const grid = useMemo(() => buildGraticulePositions(RADIUS), [])
+  const coast = useMemo(() => buildCoastPositions(RADIUS * 1.006), [])
+  const landMap = useMemo(() => {
+    const texture = new CanvasTexture(buildLandCanvas())
+    texture.flipY = true
+    texture.needsUpdate = true
+    return texture
+  }, [])
+
+  return (
+    <group>
+      <mesh>
+        <sphereGeometry args={[RADIUS * 0.994, 96, 96]} />
+        <shaderMaterial
+          vertexShader={landVertex}
+          fragmentShader={landFragment}
+          uniforms={{ uMap: { value: landMap } }}
+          transparent
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <VectorLines positions={grid} strength={0.16} back={0.035} />
+      <VectorLines positions={coast} strength={0.55} back={0.1} />
+    </group>
+  )
+}
+
+function GlobeScene({ concept = 'atmosphere' }) {
   const map = useTexture('/textures/world.jpg')
   const globe = useRef(null)
   const surface = useRef(null)
+  const conceptRef = useRef(concept)
+  conceptRef.current = concept
   const anchors = useRef([])
   const cores = useRef([])
   const blooms = useRef([])
@@ -231,9 +332,10 @@ function GlobeScene() {
     node.scale.setScalar(scale)
     node.updateWorldMatrix(true, true)
 
-    if (surface.current) {
+    if (surface.current?.uniforms?.uSweep) {
       surface.current.uniforms.uSweep.value = (dive * 1.4) % 1
     }
+    const graticule = conceptRef.current === 'graticule'
 
     cameraDirection.copy(camera.position).normalize()
     const points = []
@@ -247,8 +349,14 @@ function GlobeScene() {
       const visible = projected.z > 1 ? 0 : open * facingFade(facing)
       const core = cores.current[index]
       const bloom = blooms.current[index]
-      if (core) core.opacity = 0.2 + visible * 0.8
-      if (bloom) bloom.opacity = visible * 0.7
+      if (core) {
+        core.color.set(graticule ? '#ffffff' : '#f4feff')
+        core.opacity = graticule ? visible : 0.35 + visible * 0.65
+      }
+      if (bloom) {
+        bloom.color.set(graticule ? '#ffffff' : '#7adfff')
+        bloom.opacity = visible * (graticule ? 0.45 : 0.7)
+      }
       points.push({
         id: region.id,
         side: region.side,
@@ -263,9 +371,9 @@ function GlobeScene() {
   return (
     <>
       <Stars />
-      <Halos />
+      {concept === 'atmosphere' && <Halos />}
       <group ref={globe}>
-        <mesh>
+        <mesh visible={concept === 'atmosphere'}>
           <sphereGeometry args={[RADIUS, 96, 96]} />
           <shaderMaterial
             ref={surface}
@@ -278,7 +386,8 @@ function GlobeScene() {
             toneMapped={false}
           />
         </mesh>
-        <mesh scale={1.045}>
+        {concept === 'graticule' && <GraticuleGlobe />}
+        <mesh visible={concept === 'atmosphere'} scale={1.045}>
           <sphereGeometry args={[RADIUS, 64, 64]} />
           <shaderMaterial
             vertexShader={atmosphereVertex}
@@ -290,7 +399,7 @@ function GlobeScene() {
             toneMapped={false}
           />
         </mesh>
-        <mesh scale={1.16}>
+        <mesh visible={concept === 'atmosphere'} scale={1.16}>
           <sphereGeometry args={[RADIUS, 48, 48]} />
           <shaderMaterial
             vertexShader={atmosphereVertex}
