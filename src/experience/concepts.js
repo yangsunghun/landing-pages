@@ -1,5 +1,5 @@
 export const CONCEPTS = [
-  { id: 'atmosphere', label: '대기' },
-  { id: 'graticule', label: '경위선' },
-  { id: 'orbit', label: '궤도' },
+  { id: 'atmosphere', label: '스타일 1' },
+  { id: 'graticule', label: '스타일 2' },
+  { id: 'orbit', label: '스타일 3' },
 ]

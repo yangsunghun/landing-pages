@@ -228,6 +228,14 @@ html[data-concept='orbit'] .card .dot {
   box-shadow: 0 0 10px #9eefff;
 }
 
+.card[data-side='left'] {
+  transform-origin: calc(100% + 1px) 26px;
+}
+
+.card[data-side='right'] {
+  transform-origin: -1px 26px;
+}
+
 .card[data-side='left'] .dot {
   right: -4px;
 }

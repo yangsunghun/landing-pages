@@ -60,7 +60,7 @@ const landFragment = /* glsl */ `
 `
 
 const RADIUS = 1.48
-const TURNS = 3
+const TURNS = 2
 const worldPoint = new Vector3()
 const cameraDirection = new Vector3()
 
@@ -429,6 +429,13 @@ function GlobeScene({ concept = 'atmosphere' }) {
       if (!anchor) return
       anchor.getWorldPosition(worldPoint)
       const facing = worldPoint.dot(cameraDirection) / worldPoint.length()
+      const distance = worldPoint.distanceTo(camera.position)
+      const radius = RADIUS * node.scale.x
+      const reach = camera.position.length()
+      const front = Math.max(0.5, reach - radius)
+      const limb = Math.sqrt(Math.max(front * front, reach * reach - radius * radius))
+      const depth = Math.min(1, Math.max(0, (distance - front) / Math.max(0.001, limb - front)))
+      const cardScale = 1 - depth * depth * 0.42
       const projected = worldPoint.project(camera)
       const face = projected.z > 1 ? 0 : facingFade(facing)
       const core = cores.current[index]
@@ -446,6 +453,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
         x: (projected.x * 0.5 + 0.5) * size.width,
         y: (-projected.y * 0.5 + 0.5) * size.height,
         facing: face,
+        scale: cardScale,
       })
     })
     pushAnchors(points)

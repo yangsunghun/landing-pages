@@ -86,8 +86,9 @@ function paintCards(root, points) {
     const width = card.offsetWidth
     const x = onRight ? point.x + 16 : point.x - width - 16
     const y = point.y - 26
+    const scale = Number.isFinite(point.scale) ? point.scale : 1
     card.style.opacity = String(shown)
-    card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
+    card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`
   })
 }
 
@@ -128,7 +129,7 @@ export default function App() {
       </button>
 
       <div className="tools">
-        <div className="concepts" role="group" aria-label="행성 형태">
+        <div className="concepts" role="group" aria-label="스타일">
           {CONCEPTS.map((item) => (
             <button
               key={item.id}
@@ -186,7 +187,7 @@ export default function App() {
 
       <p className="sr-only">
         스크롤하면 구체가 다가오며 회전하고, 마우스로 돌리면 지역 카드가 표면과 함께 움직입니다.
-        대기, 경위선, 궤도 버튼으로 행성 형태를 바꿀 수 있습니다.
+        스타일 1, 2, 3 버튼으로 행성 형태를 바꿀 수 있습니다.
       </p>
       <Loader />
     </>
