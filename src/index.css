@@ -178,7 +178,8 @@ html[data-concept='graticule'] .card {
   fill: none;
   stroke: rgba(198, 242, 255, 0.82);
   stroke-width: 1.15;
-  stroke-linecap: round;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
   filter: drop-shadow(0 0 4px rgba(140, 220, 255, 0.85));
 }
 
@@ -186,7 +187,8 @@ html[data-concept='graticule'] .card {
   fill: none;
   stroke: #ffffff;
   stroke-width: 1.5;
-  stroke-linecap: round;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
   stroke-dasharray: 14 210;
   opacity: 0;
 }

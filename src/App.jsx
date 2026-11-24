@@ -72,19 +72,9 @@ function Loader() {
 }
 
 function branchPath(x1, y1, x2, y2) {
-  const cx = window.innerWidth * 0.5
-  const cy = window.innerHeight * 0.5
-  const ox = x1 - cx
-  const oy = y1 - cy
-  const length = Math.hypot(ox, oy) || 1
-  const room = Math.min(x1, y1, window.innerWidth - x1, window.innerHeight - y1)
-  const reach = Math.min(86, Math.max(28, room * 0.55))
-  const ax = x1 + (ox / length) * reach
-  const ay = y1 + (oy / length) * reach
-  const pull = x2 > cx ? -46 : 46
-  const bx = x2 + pull
-  const by = y2 + (y1 - y2) * 0.12
-  return `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${ax.toFixed(1)} ${ay.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`
+  const x = x1.toFixed(1)
+  const y = y1.toFixed(1)
+  return `M ${x} ${y} L ${x} ${y2.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`
 }
 
 function paintLinks(root, points) {
