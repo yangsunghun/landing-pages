@@ -45,10 +45,6 @@ export function diveAmount(progress) {
   return smoothstep(progress / 0.64)
 }
 
-export function regionOpen(progress, index) {
-  return smoothstep((progress - (0.6 + index * 0.07)) / 0.13)
-}
-
 export function dossierOpen(progress) {
   return smoothstep((progress - 0.58) / 0.24)
 }

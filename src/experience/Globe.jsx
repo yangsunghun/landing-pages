@@ -10,7 +10,7 @@ import {
   MathUtils,
   Vector3,
 } from 'three'
-import { commitProgress, diveAmount, dossierOpen, getJourney, regionOpen } from './journey'
+import { commitProgress, diveAmount, dossierOpen, getJourney } from './journey'
 import { buildCoastPositions, buildGraticulePositions, buildLandCanvas } from './graticule'
 import { GreenGlobe, OrbitRings } from './OrbitGlobe'
 import { pushAnchors } from './links'
@@ -311,7 +311,6 @@ function GlobeScene({ concept = 'atmosphere' }) {
 
   useEffect(() => {
     const onDown = (event) => {
-      if (conceptRef.current !== 'orbit') return
       if (event.pointerType !== 'mouse' || event.button !== 0) return
       if (event.target.closest?.('a, button')) return
       drag.current.active = true
@@ -367,7 +366,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
     camera.position.set(
       swing * (narrow ? 0.7 : 1.55),
       (narrow ? 0.7 : 1.15) - dive * (narrow ? 0.55 : 1) + swing * 0.42,
-      (narrow ? 16.4 : 13.2) - dive * (narrow ? 6.2 : 5.7),
+      (narrow ? 12.2 : 9.8) - dive * (narrow ? 4.6 : 4.3),
     )
     camera.lookAt(0, 0.02, 0)
     camera.rotateZ(swing * 0.07)
@@ -375,15 +374,16 @@ function GlobeScene({ concept = 'atmosphere' }) {
 
     const node = globe.current
     const orbit = conceptRef.current === 'orbit'
-    if (orbit && !drag.current.active) {
+    if (!drag.current.active) {
+      drag.current.yaw += delta * 0.09
       drag.current.yaw += drag.current.vy * delta
       drag.current.pitch = MathUtils.clamp(drag.current.pitch + drag.current.vp * delta, -0.65, 0.65)
       const decay = Math.exp(-delta * 6)
       drag.current.vy *= decay
       drag.current.vp *= decay
     }
-    node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS + (orbit ? drag.current.yaw : 0)
-    node.rotation.x = swing * 0.22 + (orbit ? drag.current.pitch : 0)
+    node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS + drag.current.yaw
+    node.rotation.x = swing * 0.22 + drag.current.pitch
     node.rotation.z = swing * -0.12
     const scale = 1 + swing * 0.055
     node.scale.setScalar(scale)
@@ -401,26 +401,22 @@ function GlobeScene({ concept = 'atmosphere' }) {
       if (!anchor) return
       anchor.getWorldPosition(worldPoint)
       const facing = worldPoint.dot(cameraDirection) / worldPoint.length()
-      const open = regionOpen(next, index)
       const projected = worldPoint.project(camera)
       const face = projected.z > 1 ? 0 : facingFade(facing)
-      const visible = open * face
       const core = cores.current[index]
       const bloom = blooms.current[index]
       if (core) {
         core.color.set(graticule ? '#ffffff' : orbit ? '#f4ecd4' : '#f4feff')
-        core.opacity = orbit ? face : graticule ? visible : 0.35 + visible * 0.65
+        core.opacity = face
       }
       if (bloom) {
         bloom.color.set(graticule ? '#ffffff' : orbit ? '#e7c56b' : '#7adfff')
-        bloom.opacity = orbit ? face * 0.28 : visible * (graticule ? 0.45 : 0.7)
+        bloom.opacity = face * (graticule ? 0.45 : orbit ? 0.28 : 0.55)
       }
       points.push({
         id: region.id,
-        side: region.side,
         x: (projected.x * 0.5 + 0.5) * size.width,
         y: (-projected.y * 0.5 + 0.5) * size.height,
-        visible,
         facing: face,
       })
     })

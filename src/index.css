@@ -1,6 +1,5 @@
 :root {
-  --serif: "Noto Serif KR", "Iowan Old Style", Palatino, serif;
-  --sans: "Noto Sans KR", "Segoe UI", sans-serif;
+  --sans: "Pretendard", "Segoe UI", sans-serif;
   --ink: #e7eef6;
   --muted: rgba(231, 238, 246, 0.62);
   color: var(--ink);
@@ -46,6 +45,11 @@ button {
   position: fixed;
   inset: 0;
   z-index: 0;
+  cursor: grab;
+}
+
+html.is-turning .stage {
+  cursor: grabbing;
 }
 
 .veil {
@@ -117,57 +121,25 @@ button {
   background: rgba(255, 255, 255, 0.06);
 }
 
-html[data-concept='graticule'] .wire-base {
-  stroke: rgba(255, 255, 255, 0.78);
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.45));
-}
-
 html[data-concept='graticule'] .card {
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-html[data-concept='orbit'] .stage {
-  cursor: grab;
+html[data-concept='graticule'] .card .kicker {
+  color: rgba(244, 247, 252, 0.86);
 }
 
-html.is-turning .stage {
-  cursor: grabbing;
+html[data-concept='orbit'] .card {
+  border-color: rgba(232, 206, 140, 0.34);
 }
 
-.orbit-card {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: min(210px, 28vw);
-  padding: 9px 11px 10px;
-  color: #f4f7f2;
-  background: rgba(0, 0, 0, 0.74);
-  border-radius: 6px;
-  box-shadow: inset 0 1px 0 rgba(52, 211, 153, 0.7);
-  opacity: 0;
-  pointer-events: none;
+html[data-concept='orbit'] .card .kicker {
+  color: rgba(232, 206, 140, 0.92);
 }
 
-.orbit-card .kicker {
-  margin: 0;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: rgba(167, 243, 208, 0.82);
-}
-
-.orbit-card h2 {
-  margin: 4px 0 3px;
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 16px;
-  letter-spacing: -0.02em;
-}
-
-.orbit-card .body {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-  color: #6ee7b7;
+html[data-concept='orbit'] .card .dot {
+  background: #f6edd4;
+  box-shadow: 0 0 10px rgba(232, 196, 120, 0.9);
 }
 
 .jump {
@@ -210,46 +182,10 @@ html.is-turning .stage {
   pointer-events: none;
 }
 
-.wires {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.wire-base {
-  fill: none;
-  stroke: rgba(198, 242, 255, 0.82);
-  stroke-width: 1.15;
-  stroke-linecap: square;
-  stroke-linejoin: miter;
-  filter: drop-shadow(0 0 4px rgba(140, 220, 255, 0.85));
-}
-
-.wire-flow {
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 1.5;
-  stroke-linecap: square;
-  stroke-linejoin: miter;
-  stroke-dasharray: 14 210;
-  opacity: 0;
-}
-
-.wire-flow.is-live {
-  opacity: 0.9;
-  animation: flow 2.4s linear infinite;
-}
-
-.wires circle {
-  fill: #f4feff;
-  opacity: 0;
-  filter: drop-shadow(0 0 6px rgba(180, 240, 255, 0.95));
-}
-
 .card {
   position: absolute;
+  left: 0;
+  top: 0;
   width: min(250px, 22vw);
   padding: 16px 18px 15px;
   color: #e9f6ff;
@@ -261,26 +197,6 @@ html.is-turning .stage {
   pointer-events: none;
 }
 
-.card[data-slot='nw'] {
-  left: 4.2vw;
-  top: 16vh;
-}
-
-.card[data-slot='sw'] {
-  left: 6vw;
-  top: 58vh;
-}
-
-.card[data-slot='ne'] {
-  right: 4.2vw;
-  top: 18vh;
-}
-
-.card[data-slot='se'] {
-  right: 6vw;
-  top: 60vh;
-}
-
 .card .kicker {
   margin: 0;
   font-size: 11px;
@@ -289,11 +205,10 @@ html.is-turning .stage {
 }
 
 .card h2 {
-  margin: 8px 0 6px;
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 28px;
-  letter-spacing: -0.03em;
+  margin: 6px 0 5px;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.02em;
 }
 
 .card .body {
@@ -366,12 +281,6 @@ html.is-turning .stage {
   border: 0;
 }
 
-@keyframes flow {
-  to {
-    stroke-dashoffset: -224;
-  }
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -401,33 +310,11 @@ html.is-turning .stage {
   }
 
   .card h2 {
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .card .body {
     font-size: 12px;
-  }
-
-  .card[data-slot='nw'] {
-    left: 12px;
-    top: 13vh;
-  }
-
-  .card[data-slot='ne'] {
-    right: 12px;
-    top: 13vh;
-  }
-
-  .card[data-slot='sw'] {
-    left: 12px;
-    top: auto;
-    bottom: 8vh;
-  }
-
-  .card[data-slot='se'] {
-    right: 12px;
-    top: auto;
-    bottom: 8vh;
   }
 
   .credit {

@@ -71,65 +71,23 @@ function Loader() {
   )
 }
 
-function branchPath(x1, y1, x2, y2) {
-  const x = x1.toFixed(1)
-  const y = y1.toFixed(1)
-  return `M ${x} ${y} L ${x} ${y2.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`
-}
-
-function paintOrbitCards(root, points) {
+function paintCards(root, points) {
+  if (!root) return
   const ranked = [...points].sort((a, b) => b.facing - a.facing)
   const placed = []
   ranked.forEach((point) => {
-    const card = root.querySelector(`[data-orbit-card="${point.id}"]`)
+    const card = root.querySelector(`[data-region="${point.id}"]`)
     if (!card) return
-    const crowded = placed.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < 120)
+    const crowded = placed.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < 150)
     const shown = crowded ? 0 : Math.min(1, Math.max(0, point.facing))
     if (shown > 0.25) placed.push(point)
+    const onRight = point.x >= window.innerWidth * 0.5
+    card.dataset.side = onRight ? 'right' : 'left'
     const width = card.offsetWidth
-    const height = card.offsetHeight
-    const x = point.x >= window.innerWidth * 0.5 ? point.x + 18 : point.x - width - 18
-    const y = point.y - height * 0.45
+    const x = onRight ? point.x + 16 : point.x - width - 16
+    const y = point.y - 26
     card.style.opacity = String(shown)
     card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
-  })
-}
-
-function paintLinks(root, points) {
-  if (!root) return
-  if (root.querySelector('[data-orbit-card]')) {
-    paintOrbitCards(root, points)
-    return
-  }
-  points.forEach((point) => {
-    const card = root.querySelector(`[data-region="${point.id}"]`)
-    const wire = root.querySelector(`[data-wire="${point.id}"]`)
-    const flow = root.querySelector(`[data-flow="${point.id}"]`)
-    const joint = root.querySelector(`[data-joint="${point.id}"]`)
-    if (!card || !wire || !flow || !joint) return
-
-    const dot = card.querySelector('.dot')
-    const rect = dot.getBoundingClientRect()
-    const endX = rect.left + rect.width / 2
-    const endY = rect.top + rect.height / 2
-    const shown = Math.min(1, Math.max(0, point.visible))
-    const path = branchPath(point.x, point.y, endX, endY)
-    wire.setAttribute('d', path)
-    flow.setAttribute('d', path)
-    const length = wire.getTotalLength()
-    wire.style.strokeDasharray = `${length}`
-    wire.style.strokeDashoffset = `${length * (1 - shown)}`
-    wire.style.opacity = shown > 0.02 ? '1' : '0'
-    flow.classList.toggle('is-live', shown > 0.94)
-    joint.setAttribute('cx', point.x.toFixed(1))
-    joint.setAttribute('cy', point.y.toFixed(1))
-    joint.style.opacity = shown > 0.08 ? String(Math.min(1, shown * 1.4)) : '0'
-
-    const lift = 1 - shown
-    const drift = point.side === 'left' ? -26 * lift : 26 * lift
-    card.style.opacity = String(shown)
-    card.style.transform = `translate3d(${drift}px, ${18 * lift}px, 0) scale(${0.94 + shown * 0.06})`
-    card.style.pointerEvents = shown > 0.65 ? 'auto' : 'none'
   })
 }
 
@@ -144,7 +102,7 @@ export default function App() {
   }, [concept])
 
   useEffect(() => subscribeJourney(setProgress), [])
-  useEffect(() => bindPainter((points) => paintLinks(field.current, points)), [])
+  useEffect(() => bindPainter((points) => paintCards(field.current, points)), [])
 
   const open = dossierOpen(progress)
   const hint = progress < 0.03 ? 1 : progress > 0.16 ? 0 : 1 - (progress - 0.03) / 0.13
@@ -153,7 +111,7 @@ export default function App() {
     <>
       <Canvas
         className="stage"
-        camera={{ fov: 30, near: 0.1, far: 160, position: [0, 1.15, 13.2] }}
+        camera={{ fov: 30, near: 0.1, far: 160, position: [0, 1.15, 9.8] }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
@@ -194,41 +152,14 @@ export default function App() {
       </p>
 
       <div className="field" ref={field}>
-        {concept === 'orbit' ? (
-          REGIONS.map((region) => (
-            <article key={region.id} className="orbit-card" data-orbit-card={region.id}>
-              <p className="kicker">{region.kicker}</p>
-              <h2>{region.title}</h2>
-              <p className="body">{region.text}</p>
-            </article>
-          ))
-        ) : (
-          <>
-            <svg className="wires" aria-hidden="true">
-              {REGIONS.map((region) => (
-                <g key={region.id}>
-                  <path data-wire={region.id} className="wire-base" />
-                  <path data-flow={region.id} className="wire-flow" />
-                  <circle data-joint={region.id} r="2.4" />
-                </g>
-              ))}
-            </svg>
-            {REGIONS.map((region) => (
-              <article
-                key={region.id}
-                className="card"
-                data-region={region.id}
-                data-side={region.side}
-                data-slot={region.slot}
-              >
-                <i className="dot" />
-                <p className="kicker">{region.kicker}</p>
-                <h2>{region.title}</h2>
-                <p className="body">{region.text}</p>
-              </article>
-            ))}
-          </>
-        )}
+        {REGIONS.map((region) => (
+          <article key={region.id} className="card" data-region={region.id}>
+            <i className="dot" />
+            <p className="kicker">{region.kicker}</p>
+            <h2>{region.title}</h2>
+            <p className="body">{region.text}</p>
+          </article>
+        ))}
       </div>
 
       <p className="credit" style={{ opacity: 1 - open * 0.85 }}>
@@ -254,8 +185,8 @@ export default function App() {
       </p>
 
       <p className="sr-only">
-        스크롤하면 구체가 다가오며 회전합니다. 궤도에서는 마우스로 구체를 돌리면 지역 기록이 표면과
-        함께 움직입니다. 대기, 경위선, 궤도 버튼으로 행성 형태를 바꿀 수 있습니다.
+        스크롤하면 구체가 다가오며 회전하고, 마우스로 돌리면 지역 카드가 표면과 함께 움직입니다.
+        대기, 경위선, 궤도 버튼으로 행성 형태를 바꿀 수 있습니다.
       </p>
       <Loader />
     </>
