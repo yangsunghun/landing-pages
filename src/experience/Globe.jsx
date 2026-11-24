@@ -127,11 +127,24 @@ const hazeFragment = /* glsl */ `
 
 const starVertex = /* glsl */ `
   attribute float aSeed;
+  uniform float uYaw;
+  uniform float uPitch;
+  uniform float uRoll;
   varying float vSeed;
   void main() {
     vSeed = aSeed;
-    vec4 view = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = mix(1.7, 3.6, pow(aSeed, 2.6));
+    float cx = cos(uPitch);
+    float sx = sin(uPitch);
+    vec3 p = vec3(position.x, cx * position.y - sx * position.z, sx * position.y + cx * position.z);
+    float cy = cos(uYaw);
+    float sy = sin(uYaw);
+    p = vec3(cy * p.x + sy * p.z, p.y, -sy * p.x + cy * p.z);
+    float cz = cos(uRoll);
+    float sz = sin(uRoll);
+    p = vec3(cz * p.x - sz * p.y, sz * p.x + cz * p.y, p.z);
+    vec4 view = modelViewMatrix * vec4(p, 1.0);
+    float prominent = smoothstep(0.97, 1.0, aSeed);
+    gl_PointSize = mix(mix(1.7, 3.4, pow(aSeed, 2.6)), mix(4.4, 6.4, aSeed), prominent);
     gl_Position = projectionMatrix * view;
   }
 `
@@ -171,14 +184,25 @@ function makeStars(count) {
   return geometry
 }
 
-function Stars() {
+function Stars({ sky }) {
+  const material = useRef(null)
   const geometry = useMemo(() => makeStars(4800), [])
+
+  useFrame(() => {
+    const uniforms = material.current?.uniforms
+    if (!uniforms) return
+    uniforms.uYaw.value = sky.current.y
+    uniforms.uPitch.value = sky.current.x
+    uniforms.uRoll.value = sky.current.z
+  })
 
   return (
     <points geometry={geometry} frustumCulled={false}>
       <shaderMaterial
+        ref={material}
         vertexShader={starVertex}
         fragmentShader={starFragment}
+        uniforms={{ uYaw: { value: 0 }, uPitch: { value: 0 }, uRoll: { value: 0 } }}
         transparent
         depthWrite={false}
         blending={AdditiveBlending}
@@ -301,6 +325,7 @@ function GraticuleGlobe() {
 function GlobeScene({ concept = 'atmosphere' }) {
   const map = useTexture('/textures/world.jpg')
   const globe = useRef(null)
+  const sky = useRef({ x: 0, y: 0, z: 0 })
   const surface = useRef(null)
   const conceptRef = useRef(concept)
   conceptRef.current = concept
@@ -385,6 +410,9 @@ function GlobeScene({ concept = 'atmosphere' }) {
     node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS + drag.current.yaw
     node.rotation.x = swing * 0.22 + drag.current.pitch
     node.rotation.z = swing * -0.12
+    sky.current.x = node.rotation.x
+    sky.current.y = node.rotation.y
+    sky.current.z = node.rotation.z
     const scale = 1 + swing * 0.055
     node.scale.setScalar(scale)
     node.updateWorldMatrix(true, true)
@@ -425,7 +453,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
 
   return (
     <>
-      <Stars />
+      <Stars sky={sky} />
       {concept === 'atmosphere' && <Halos />}
       {concept === 'orbit' && <OrbitRings />}
       <group ref={globe}>
