@@ -53,7 +53,8 @@ button {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 42%, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+  background:
+    radial-gradient(ellipse at 50% 46%, transparent 18%, rgba(0, 0, 0, 0.28) 52%, rgba(0, 0, 0, 0.72) 100%);
 }
 
 .mark,
@@ -92,9 +93,9 @@ button {
   top: 26px;
   right: 32px;
   padding: 10px 16px;
-  border: 1px solid rgba(231, 238, 246, 0.22);
+  border: 1px solid rgba(190, 230, 245, 0.28);
   border-radius: 999px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   font-size: 12px;
   background: rgba(0, 0, 0, 0.35);
 }
@@ -102,108 +103,150 @@ button {
 .hint {
   position: fixed;
   left: 50%;
-  bottom: 11vh;
+  bottom: 9vh;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   font-size: 11px;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: rgba(231, 238, 246, 0.8);
+  color: rgba(214, 240, 255, 0.82);
   pointer-events: none;
 }
 
 .hint i {
   display: block;
   width: 1px;
-  height: 42px;
-  background: linear-gradient(var(--ink), transparent);
+  height: 48px;
+  background: linear-gradient(#d7f6ff, transparent);
+  animation: pulse 1.8s ease-in-out infinite;
 }
 
-.board {
+.field {
   position: fixed;
+  inset: 0;
   z-index: 3;
-  left: max(24px, 8vw);
-  right: max(24px, 8vw);
-  bottom: 7vh;
-  max-height: 64vh;
-  overflow: auto;
-  padding: 28px 32px 12px;
-  border: 1px solid rgba(231, 238, 246, 0.16);
-  border-radius: 18px;
-  background: rgba(6, 8, 12, 0.72);
-  backdrop-filter: blur(16px);
   pointer-events: none;
 }
 
-.board header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 8px;
+.wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-.board header p {
+.wire-base {
+  fill: none;
+  stroke: rgba(198, 242, 255, 0.82);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(140, 220, 255, 0.85));
+}
+
+.wire-flow {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 14 210;
+  opacity: 0;
+}
+
+.wire-flow.is-live {
+  opacity: 0.9;
+  animation: flow 2.4s linear infinite;
+}
+
+.wires circle {
+  fill: #f4feff;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(180, 240, 255, 0.95));
+}
+
+.card {
+  position: absolute;
+  width: min(250px, 22vw);
+  padding: 16px 18px 15px;
+  color: #e9f6ff;
+  background: linear-gradient(180deg, rgba(8, 18, 28, 0.72), rgba(3, 8, 14, 0.46));
+  border: 1px solid rgba(176, 226, 242, 0.24);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card[data-slot='nw'] {
+  left: 4.2vw;
+  top: 16vh;
+}
+
+.card[data-slot='sw'] {
+  left: 6vw;
+  top: 58vh;
+}
+
+.card[data-slot='ne'] {
+  right: 4.2vw;
+  top: 18vh;
+}
+
+.card[data-slot='se'] {
+  right: 6vw;
+  top: 60vh;
+}
+
+.card .kicker {
   margin: 0;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
   font-size: 11px;
-  color: var(--muted);
+  letter-spacing: 0.16em;
+  color: rgba(168, 220, 236, 0.78);
 }
 
-.board header h2 {
-  margin: 0;
+.card h2 {
+  margin: 8px 0 6px;
   font-family: var(--serif);
   font-weight: 400;
-  font-size: clamp(40px, 5vw, 64px);
-  letter-spacing: -0.04em;
+  font-size: 28px;
+  letter-spacing: -0.03em;
 }
 
-.board ol {
-  list-style: none;
+.card .body {
   margin: 0;
-  padding: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(231, 238, 246, 0.74);
 }
 
-.board li {
-  display: grid;
-  grid-template-columns: 42px 1fr auto;
-  gap: 18px;
-  align-items: baseline;
-  padding: 12px 0;
-  border-top: 1px solid rgba(231, 238, 246, 0.12);
+.card .dot {
+  position: absolute;
+  top: 22px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f4feff;
+  box-shadow: 0 0 10px #9eefff;
 }
 
-.board li span,
-.board time {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  color: var(--muted);
+.card[data-side='left'] .dot {
+  right: -4px;
 }
 
-.board strong {
-  display: block;
-  font-weight: 500;
-  font-size: 17px;
-}
-
-.board em {
-  display: block;
-  margin-top: 4px;
-  font-style: normal;
-  color: var(--muted);
-  font-size: 14px;
+.card[data-side='right'] .dot {
+  left: -4px;
 }
 
 .credit {
   position: fixed;
-  right: 32px;
+  left: 32px;
   bottom: 18px;
   margin: 0;
   font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--muted);
 }
 
@@ -242,7 +285,25 @@ button {
   border: 0;
 }
 
-@media (max-width: 760px) {
+@keyframes flow {
+  to {
+    stroke-dashoffset: -224;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scaleY(1.08);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 860px) {
   .mark {
     top: 16px;
     left: 16px;
@@ -253,24 +314,43 @@ button {
     right: 16px;
   }
 
-  .board {
+  .card {
+    width: calc(50vw - 22px);
+    padding: 12px 12px 11px;
+  }
+
+  .card h2 {
+    font-size: 20px;
+  }
+
+  .card .body {
+    font-size: 12px;
+  }
+
+  .card[data-slot='nw'] {
     left: 12px;
+    top: 13vh;
+  }
+
+  .card[data-slot='ne'] {
     right: 12px;
+    top: 13vh;
+  }
+
+  .card[data-slot='sw'] {
+    left: 12px;
+    top: auto;
     bottom: 8vh;
-    padding: 20px 16px 8px;
-    max-height: 62vh;
   }
 
-  .board li {
-    grid-template-columns: 32px 1fr;
-  }
-
-  .board time {
-    grid-column: 2;
+  .card[data-slot='se'] {
+    right: 12px;
+    top: auto;
+    bottom: 8vh;
   }
 
   .credit {
     left: 16px;
-    right: auto;
+    bottom: 10px;
   }
 }

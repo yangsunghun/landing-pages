@@ -32,9 +32,23 @@ export function subscribeJourney(listener) {
   return () => listeners.delete(listener)
 }
 
-export function boardOpen(progress) {
-  const start = 0.58
-  const t = (progress - start) / (1 - start)
-  const clamped = Math.min(1, Math.max(0, t))
-  return clamped * clamped * (3 - 2 * clamped)
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value))
+}
+
+function smoothstep(value) {
+  const t = clamp01(value)
+  return t * t * (3 - 2 * t)
+}
+
+export function diveAmount(progress) {
+  return smoothstep(progress / 0.64)
+}
+
+export function regionOpen(progress, index) {
+  return smoothstep((progress - (0.6 + index * 0.07)) / 0.13)
+}
+
+export function dossierOpen(progress) {
+  return smoothstep((progress - 0.58) / 0.24)
 }

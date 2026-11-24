@@ -1,32 +1,26 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import GlobeScene from './experience/Globe'
-import { POSTS } from './experience/posts'
-import { boardOpen, nudgeTarget, setTarget, subscribeJourney } from './experience/journey'
+import { bindPainter } from './experience/links'
+import { REGIONS } from './experience/regions'
+import { dossierOpen, nudgeTarget, setTarget, subscribeJourney } from './experience/journey'
 
 function useJourneyInput() {
   useEffect(() => {
     const onWheel = (event) => {
-      const board = event.target.closest?.('.board')
-      if (board && board.scrollHeight > board.clientHeight + 4) {
-        const atTop = board.scrollTop <= 0
-        const atBottom = board.scrollTop + board.clientHeight >= board.scrollHeight - 4
-        const scrollingInside = (event.deltaY < 0 && !atTop) || (event.deltaY > 0 && !atBottom)
-        if (scrollingInside) return
-      }
       event.preventDefault()
       const line = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1
-      nudgeTarget(event.deltaY * line * 0.00036)
+      nudgeTarget(event.deltaY * line * 0.0004)
     }
 
     const onKey = (event) => {
       if (event.key === 'ArrowDown' || event.key === 'PageDown') {
         event.preventDefault()
-        nudgeTarget(0.07)
+        nudgeTarget(0.08)
       } else if (event.key === 'ArrowUp' || event.key === 'PageUp') {
         event.preventDefault()
-        nudgeTarget(-0.07)
+        nudgeTarget(-0.08)
       } else if (event.key === 'Home') {
         setTarget(0)
       } else if (event.key === 'End') {
@@ -36,7 +30,7 @@ function useJourneyInput() {
 
     let lastY = null
     const onTouchStart = (event) => {
-      if (event.target.closest('a, button, .board')) {
+      if (event.target.closest('a, button')) {
         lastY = null
         return
       }
@@ -45,7 +39,7 @@ function useJourneyInput() {
     const onTouchMove = (event) => {
       if (lastY == null) return
       const y = event.touches[0].clientY
-      nudgeTarget((lastY - y) * 0.0015)
+      nudgeTarget((lastY - y) * 0.0016)
       lastY = y
       event.preventDefault()
     }
@@ -76,51 +70,72 @@ function Loader() {
   )
 }
 
-function Board({ open }) {
-  return (
-    <section
-      className="board"
-      style={{
-        opacity: open,
-        transform: `translateY(${(1 - open) * 56}px)`,
-        pointerEvents: open > 0.45 ? 'auto' : 'none',
-      }}
-      aria-hidden={open < 0.35}
-    >
-      <header>
-        <p>Board</p>
-        <h2>게시판</h2>
-      </header>
-      <ol>
-        {POSTS.map((post) => (
-          <li key={post.no}>
-            <span>{post.no}</span>
-            <div>
-              <strong>{post.title}</strong>
-              <em>{post.text}</em>
-            </div>
-            <time>{post.date}</time>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
+function branchPath(x1, y1, x2, y2) {
+  const cx = window.innerWidth * 0.5
+  const cy = window.innerHeight * 0.5
+  const ox = x1 - cx
+  const oy = y1 - cy
+  const length = Math.hypot(ox, oy) || 1
+  const room = Math.min(x1, y1, window.innerWidth - x1, window.innerHeight - y1)
+  const reach = Math.min(86, Math.max(28, room * 0.55))
+  const ax = x1 + (ox / length) * reach
+  const ay = y1 + (oy / length) * reach
+  const pull = x2 > cx ? -46 : 46
+  const bx = x2 + pull
+  const by = y2 + (y1 - y2) * 0.12
+  return `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${ax.toFixed(1)} ${ay.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`
+}
+
+function paintLinks(root, points) {
+  if (!root) return
+  points.forEach((point) => {
+    const card = root.querySelector(`[data-region="${point.id}"]`)
+    const wire = root.querySelector(`[data-wire="${point.id}"]`)
+    const flow = root.querySelector(`[data-flow="${point.id}"]`)
+    const joint = root.querySelector(`[data-joint="${point.id}"]`)
+    if (!card || !wire || !flow || !joint) return
+
+    const dot = card.querySelector('.dot')
+    const rect = dot.getBoundingClientRect()
+    const endX = rect.left + rect.width / 2
+    const endY = rect.top + rect.height / 2
+    const shown = Math.min(1, Math.max(0, point.visible))
+    const path = branchPath(point.x, point.y, endX, endY)
+    wire.setAttribute('d', path)
+    flow.setAttribute('d', path)
+    const length = wire.getTotalLength()
+    wire.style.strokeDasharray = `${length}`
+    wire.style.strokeDashoffset = `${length * (1 - shown)}`
+    wire.style.opacity = shown > 0.02 ? '1' : '0'
+    flow.classList.toggle('is-live', shown > 0.94)
+    joint.setAttribute('cx', point.x.toFixed(1))
+    joint.setAttribute('cy', point.y.toFixed(1))
+    joint.style.opacity = shown > 0.08 ? String(Math.min(1, shown * 1.4)) : '0'
+
+    const lift = 1 - shown
+    const drift = point.side === 'left' ? -26 * lift : 26 * lift
+    card.style.opacity = String(shown)
+    card.style.transform = `translate3d(${drift}px, ${18 * lift}px, 0) scale(${0.94 + shown * 0.06})`
+    card.style.pointerEvents = shown > 0.65 ? 'auto' : 'none'
+  })
 }
 
 export default function App() {
   const [progress, setProgress] = useState(0)
+  const field = useRef(null)
   useJourneyInput()
 
   useEffect(() => subscribeJourney(setProgress), [])
+  useEffect(() => bindPainter((points) => paintLinks(field.current, points)), [])
 
-  const open = boardOpen(progress)
-  const hint = progress < 0.04 ? 1 : progress > 0.22 ? 0 : 1 - (progress - 0.04) / 0.18
+  const open = dossierOpen(progress)
+  const hint = progress < 0.03 ? 1 : progress > 0.16 ? 0 : 1 - (progress - 0.03) / 0.13
 
   return (
     <>
       <Canvas
         className="stage"
-        camera={{ fov: 30, near: 0.1, far: 40, position: [0, 0.15, 7.4] }}
+        camera={{ fov: 30, near: 0.1, far: 160, position: [0, 1.15, 13.2] }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
@@ -129,7 +144,7 @@ export default function App() {
           <GlobeScene />
         </Suspense>
       </Canvas>
-      <div className="veil" />
+      <div className="veil" style={{ opacity: 0.75 + open * 0.25 }} />
 
       <button className="mark" type="button" onClick={() => setTarget(0)}>
         <strong>원일점</strong>
@@ -137,7 +152,7 @@ export default function App() {
       </button>
 
       <button className="jump" type="button" onClick={() => setTarget(1)}>
-        게시판
+        지역
       </button>
 
       <p className="hint" style={{ opacity: hint }}>
@@ -145,21 +160,46 @@ export default function App() {
         <i />
       </p>
 
-      <Board open={open} />
+      <div className="field" ref={field}>
+        <svg className="wires" aria-hidden="true">
+          {REGIONS.map((region) => (
+            <g key={region.id}>
+              <path data-wire={region.id} className="wire-base" />
+              <path data-flow={region.id} className="wire-flow" />
+              <circle data-joint={region.id} r="2.4" />
+            </g>
+          ))}
+        </svg>
+        {REGIONS.map((region) => (
+          <article
+            key={region.id}
+            className="card"
+            data-region={region.id}
+            data-side={region.side}
+            data-slot={region.slot}
+          >
+            <i className="dot" />
+            <p className="kicker">{region.kicker}</p>
+            <h2>{region.title}</h2>
+            <p className="body">{region.text}</p>
+          </article>
+        ))}
+      </div>
 
-      <p className="credit" style={{ opacity: 1 - open }}>
-        지구 텍스처{' '}
-        <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noreferrer">
-          Solar System Scope
+      <p className="credit" style={{ opacity: 1 - open * 0.85 }}>
+        구체 텍스처{' '}
+        <a href="https://github.com/dataarts/webgl-globe" target="_blank" rel="noreferrer">
+          WebGL Globe
         </a>
         {' · '}
-        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
-          CC BY 4.0
+        <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
+          Apache 2.0
         </a>
       </p>
 
       <p className="sr-only">
-        스크롤하면 행성이 회전하고, 이어서 게시판이 나타납니다. 게시판 버튼으로 바로 열 수 있습니다.
+        스크롤하면 구체가 다가오며 회전하고, 표면의 지점에서 지역 기록이 선으로 이어집니다. 지역
+        버튼으로 끝까지 진행할 수 있습니다.
       </p>
       <Loader />
     </>

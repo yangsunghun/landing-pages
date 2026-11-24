@@ -1,12 +1,29 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
-import { AdditiveBlending, BackSide, MathUtils, SRGBColorSpace } from 'three'
-import { boardOpen, commitProgress, getJourney } from './journey'
+import {
+  AdditiveBlending,
+  BackSide,
+  BufferAttribute,
+  BufferGeometry,
+  MathUtils,
+  Vector3,
+} from 'three'
+import { commitProgress, diveAmount, dossierOpen, getJourney, regionOpen } from './journey'
+import { pushAnchors } from './links'
+import { LOCK_Y, REGIONS, anchorPosition } from './regions'
 
-const RADIUS = 1.62
+const RADIUS = 1.48
+const TURNS = 3
+const worldPoint = new Vector3()
+const cameraDirection = new Vector3()
 
-const earthVertex = /* glsl */ `
+function facingFade(value) {
+  const t = Math.min(1, Math.max(0, (value - 0.12) / 0.3))
+  return t * t * (3 - 2 * t)
+}
+
+const surfaceVertex = /* glsl */ `
   varying vec3 vNormal;
   varying vec2 vUv;
   void main() {
@@ -16,16 +33,22 @@ const earthVertex = /* glsl */ `
   }
 `
 
-const earthFragment = /* glsl */ `
+const surfaceFragment = /* glsl */ `
   uniform sampler2D uMap;
+  uniform float uSweep;
   varying vec3 vNormal;
   varying vec2 vUv;
   void main() {
-    vec3 diffuse = texture2D(uMap, vUv).rgb;
-    diffuse *= vec3(0.35, 0.5, 0.62);
+    float shade = texture2D(uMap, vUv).r;
+    float ocean = smoothstep(0.01, 0.075, shade);
+    float coast = smoothstep(0.0, 0.02, shade) * (1.0 - smoothstep(0.028, 0.07, shade));
+    vec3 color = mix(vec3(0.012, 0.016, 0.022), vec3(0.035, 0.15, 0.175), ocean);
+    color += vec3(0.35, 0.85, 0.9) * coast * 0.7;
+    float sweep = exp(-pow((vUv.x - uSweep) * 9.0, 2.0));
+    color += vec3(0.25, 0.75, 0.85) * sweep * 0.28;
     float rim = 1.05 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0));
-    vec3 atmosphere = vec3(0.0, 0.85, 1.0) * pow(clamp(rim, 0.0, 1.5), 3.0);
-    gl_FragColor = vec4(diffuse + atmosphere, 0.72);
+    vec3 atmosphere = vec3(0.0, 1.0, 1.0) * pow(clamp(rim, 0.0, 1.4), 3.0);
+    gl_FragColor = vec4(color + atmosphere * 0.8, 1.0);
     #include <colorspace_fragment>
   }
 `
@@ -41,64 +64,281 @@ const atmosphereVertex = /* glsl */ `
 const atmosphereFragment = /* glsl */ `
   varying vec3 vNormal;
   void main() {
-    float intensity = pow(0.58 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 10.0);
-    gl_FragColor = vec4(vec3(0.82, 0.95, 1.0), clamp(intensity, 0.0, 1.0));
+    float intensity = pow(0.8 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 12.0);
+    gl_FragColor = vec4(vec3(0.82, 0.96, 1.0), clamp(intensity, 0.0, 1.0));
     #include <colorspace_fragment>
   }
 `
 
-function GlobeScene() {
-  const map = useTexture('/textures/earth-day.jpg', (texture) => {
-    texture.colorSpace = SRGBColorSpace
-    texture.anisotropy = 8
-  })
-  const globe = useRef(null)
-  const idle = useRef(0.4)
+const hazeFragment = /* glsl */ `
+  varying vec3 vNormal;
+  void main() {
+    float intensity = pow(0.62 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 4.0);
+    gl_FragColor = vec4(vec3(0.15, 0.55, 0.7), clamp(intensity, 0.0, 1.0) * 0.55);
+    #include <colorspace_fragment>
+  }
+`
 
-  useFrame((_, delta) => {
-    const journey = getJourney()
-    const next = MathUtils.damp(journey.progress, journey.target, 2.5, delta)
-    commitProgress(next)
+const starVertex = /* glsl */ `
+  attribute float aSeed;
+  varying float vSeed;
+  void main() {
+    vSeed = aSeed;
+    vec4 view = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = mix(1.7, 3.6, pow(aSeed, 2.6));
+    gl_Position = projectionMatrix * view;
+  }
+`
 
-    const open = boardOpen(next)
-    idle.current += delta * (0.12 + (1 - open) * 0.05)
-    const node = globe.current
-    node.rotation.y = idle.current + next * Math.PI * 5.2
-    node.rotation.x = 0.28 * (1 - open)
-    node.position.y = open * 1.05
-    const scale = 1 - open * 0.46
-    node.scale.setScalar(scale)
+const starFragment = /* glsl */ `
+  varying float vSeed;
+  void main() {
+    vec2 uv = gl_PointCoord - vec2(0.5);
+    float d = length(uv);
+    if (d > 0.5) discard;
+    float core = pow(smoothstep(0.5, 0.0, d), 1.15);
+    float magnitude = mix(0.62, 1.0, pow(vSeed, 0.7));
+    vec3 warm = vec3(1.0, 0.95, 0.86);
+    vec3 cool = vec3(0.92, 0.96, 1.0);
+    vec3 color = mix(cool, warm, smoothstep(0.35, 0.8, vSeed));
+    gl_FragColor = vec4(color, core * magnitude);
+    #include <colorspace_fragment>
+  }
+`
+
+function makeStars(count) {
+  const positions = new Float32Array(count * 3)
+  const seeds = new Float32Array(count)
+  for (let i = 0; i < count; i += 1) {
+    const radius = 42 + Math.random() * 24
+    const theta = Math.random() * Math.PI * 2
+    const unit = Math.random() * 2 - 1
+    const ring = Math.sqrt(1 - unit * unit)
+    positions[i * 3] = radius * ring * Math.cos(theta)
+    positions[i * 3 + 1] = radius * unit
+    positions[i * 3 + 2] = radius * ring * Math.sin(theta)
+    seeds[i] = Math.random()
+  }
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new BufferAttribute(positions, 3))
+  geometry.setAttribute('aSeed', new BufferAttribute(seeds, 1))
+  return geometry
+}
+
+function Stars() {
+  const geometry = useMemo(() => makeStars(4800), [])
+
+  return (
+    <points geometry={geometry} frustumCulled={false}>
+      <shaderMaterial
+        vertexShader={starVertex}
+        fragmentShader={starFragment}
+        transparent
+        depthWrite={false}
+        blending={AdditiveBlending}
+        toneMapped={false}
+      />
+    </points>
+  )
+}
+
+function Halos() {
+  const inner = useRef(null)
+  const outer = useRef(null)
+  const innerMaterial = useRef(null)
+  const outerMaterial = useRef(null)
+
+  useFrame(({ clock }) => {
+    const progress = getJourney().progress
+    const dive = diveAmount(progress)
+    const open = dossierOpen(progress)
+    const time = clock.elapsedTime
+    const spin = 0.18 + (1 - dive) * 1.7
+    if (inner.current) {
+      inner.current.rotation.x = 1.02 - dive * 0.22
+      inner.current.rotation.y = time * spin
+      inner.current.rotation.z = Math.sin(dive * Math.PI) * 0.45
+    }
+    if (outer.current) {
+      outer.current.rotation.x = 1.28 - dive * 0.62
+      outer.current.rotation.y = -time * spin * 0.65
+      outer.current.rotation.z = 0.35
+    }
+    if (innerMaterial.current) innerMaterial.current.opacity = 0.62 - open * 0.34
+    if (outerMaterial.current) outerMaterial.current.opacity = 0.32 - open * 0.18
   })
 
   return (
-    <group ref={globe}>
-      <mesh>
-        <sphereGeometry args={[RADIUS * 0.985, 64, 64]} />
-        <meshBasicMaterial color="#02060c" />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[RADIUS, 96, 96]} />
-        <shaderMaterial
-          vertexShader={earthVertex}
-          fragmentShader={earthFragment}
-          uniforms={{ uMap: { value: map } }}
+    <group>
+      <mesh ref={inner}>
+        <torusGeometry args={[1.78, 0.0055, 12, 240]} />
+        <meshBasicMaterial
+          ref={innerMaterial}
+          color="#8eebff"
           transparent
+          opacity={0.62}
+          blending={AdditiveBlending}
           depthWrite={false}
+          toneMapped={false}
         />
       </mesh>
-      <mesh scale={1.08}>
-        <sphereGeometry args={[RADIUS, 64, 64]} />
-        <shaderMaterial
-          vertexShader={atmosphereVertex}
-          fragmentShader={atmosphereFragment}
-          side={BackSide}
+      <mesh ref={outer}>
+        <torusGeometry args={[2.05, 0.0032, 12, 220]} />
+        <meshBasicMaterial
+          ref={outerMaterial}
+          color="#ffffff"
           transparent
-          depthWrite={false}
+          opacity={0.32}
           blending={AdditiveBlending}
+          depthWrite={false}
           toneMapped={false}
         />
       </mesh>
     </group>
+  )
+}
+
+function GlobeScene() {
+  const map = useTexture('/textures/world.jpg')
+  const globe = useRef(null)
+  const surface = useRef(null)
+  const anchors = useRef([])
+  const cores = useRef([])
+  const blooms = useRef([])
+
+  useFrame(({ camera, size }, delta) => {
+    const journey = getJourney()
+    const next = MathUtils.damp(journey.progress, journey.target, 2.6, delta)
+    commitProgress(next)
+
+    const dive = diveAmount(next)
+    const narrow = size.width < 860
+    const swing = Math.sin(dive * Math.PI)
+    camera.position.set(
+      swing * (narrow ? 0.7 : 1.55),
+      (narrow ? 0.7 : 1.15) - dive * (narrow ? 0.55 : 1) + swing * 0.42,
+      (narrow ? 16.4 : 13.2) - dive * (narrow ? 6.2 : 5.7),
+    )
+    camera.lookAt(0, 0.02, 0)
+    camera.rotateZ(swing * 0.07)
+    camera.updateMatrixWorld()
+
+    const node = globe.current
+    node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS
+    node.rotation.x = swing * 0.22
+    node.rotation.z = swing * -0.12
+    const scale = 1 + swing * 0.055
+    node.scale.setScalar(scale)
+    node.updateWorldMatrix(true, true)
+
+    if (surface.current) {
+      surface.current.uniforms.uSweep.value = (dive * 1.4) % 1
+    }
+
+    cameraDirection.copy(camera.position).normalize()
+    const points = []
+    REGIONS.forEach((region, index) => {
+      const anchor = anchors.current[index]
+      if (!anchor) return
+      anchor.getWorldPosition(worldPoint)
+      const facing = worldPoint.dot(cameraDirection) / worldPoint.length()
+      const open = regionOpen(next, index)
+      const projected = worldPoint.project(camera)
+      const visible = projected.z > 1 ? 0 : open * facingFade(facing)
+      const core = cores.current[index]
+      const bloom = blooms.current[index]
+      if (core) core.opacity = 0.2 + visible * 0.8
+      if (bloom) bloom.opacity = visible * 0.7
+      points.push({
+        id: region.id,
+        side: region.side,
+        x: (projected.x * 0.5 + 0.5) * size.width,
+        y: (-projected.y * 0.5 + 0.5) * size.height,
+        visible,
+      })
+    })
+    pushAnchors(points)
+  })
+
+  return (
+    <>
+      <Stars />
+      <Halos />
+      <group ref={globe}>
+        <mesh>
+          <sphereGeometry args={[RADIUS, 96, 96]} />
+          <shaderMaterial
+            ref={surface}
+            vertexShader={surfaceVertex}
+            fragmentShader={surfaceFragment}
+            uniforms={{
+              uMap: { value: map },
+              uSweep: { value: 0 },
+            }}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh scale={1.045}>
+          <sphereGeometry args={[RADIUS, 64, 64]} />
+          <shaderMaterial
+            vertexShader={atmosphereVertex}
+            fragmentShader={atmosphereFragment}
+            side={BackSide}
+            transparent
+            depthWrite={false}
+            blending={AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh scale={1.16}>
+          <sphereGeometry args={[RADIUS, 48, 48]} />
+          <shaderMaterial
+            vertexShader={atmosphereVertex}
+            fragmentShader={hazeFragment}
+            side={BackSide}
+            transparent
+            depthWrite={false}
+            blending={AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+        {REGIONS.map((region, index) => (
+          <group
+            key={region.id}
+            position={anchorPosition(region.lat, region.lng, RADIUS * 1.012)}
+            ref={(node) => {
+              anchors.current[index] = node
+            }}
+          >
+            <mesh>
+              <sphereGeometry args={[0.022, 14, 14]} />
+              <meshBasicMaterial
+                ref={(material) => {
+                  cores.current[index] = material
+                }}
+                color="#f4feff"
+                transparent
+                toneMapped={false}
+              />
+            </mesh>
+            <mesh>
+              <sphereGeometry args={[0.055, 14, 14]} />
+              <meshBasicMaterial
+                ref={(material) => {
+                  blooms.current[index] = material
+                }}
+                color="#7adfff"
+                transparent
+                opacity={0}
+                depthWrite={false}
+                blending={AdditiveBlending}
+                toneMapped={false}
+              />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    </>
   )
 }
 
