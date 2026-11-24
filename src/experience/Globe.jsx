@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import {
@@ -12,6 +12,7 @@ import {
 } from 'three'
 import { commitProgress, diveAmount, dossierOpen, getJourney, regionOpen } from './journey'
 import { buildCoastPositions, buildGraticulePositions, buildLandCanvas } from './graticule'
+import { GreenGlobe, OrbitRings } from './OrbitGlobe'
 import { pushAnchors } from './links'
 import { LOCK_Y, REGIONS, anchorPosition } from './regions'
 
@@ -306,6 +307,54 @@ function GlobeScene({ concept = 'atmosphere' }) {
   const anchors = useRef([])
   const cores = useRef([])
   const blooms = useRef([])
+  const drag = useRef({ active: false, yaw: 0, pitch: 0, vy: 0, vp: 0, x: 0, y: 0, t: 0 })
+
+  useEffect(() => {
+    const onDown = (event) => {
+      if (conceptRef.current !== 'orbit') return
+      if (event.pointerType !== 'mouse' || event.button !== 0) return
+      if (event.target.closest?.('a, button')) return
+      drag.current.active = true
+      drag.current.x = event.clientX
+      drag.current.y = event.clientY
+      drag.current.t = performance.now()
+      drag.current.vy = 0
+      drag.current.vp = 0
+      document.documentElement.classList.add('is-turning')
+    }
+    const onMove = (event) => {
+      if (!drag.current.active) return
+      const dx = event.clientX - drag.current.x
+      const dy = event.clientY - drag.current.y
+      drag.current.x = event.clientX
+      drag.current.y = event.clientY
+      const now = performance.now()
+      const dt = Math.min(0.05, Math.max(0.008, (now - drag.current.t) / 1000))
+      drag.current.t = now
+      const yaw = dx * 0.007
+      const pitch = dy * 0.004
+      drag.current.yaw += yaw
+      drag.current.pitch = MathUtils.clamp(drag.current.pitch + pitch, -0.65, 0.65)
+      drag.current.vy = MathUtils.clamp(yaw / dt, -1.4, 1.4)
+      drag.current.vp = MathUtils.clamp(pitch / dt, -0.8, 0.8)
+    }
+    const end = () => {
+      if (!drag.current.active) return
+      drag.current.active = false
+      document.documentElement.classList.remove('is-turning')
+    }
+    window.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => {
+      window.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      document.documentElement.classList.remove('is-turning')
+    }
+  }, [])
 
   useFrame(({ camera, size }, delta) => {
     const journey = getJourney()
@@ -325,8 +374,16 @@ function GlobeScene({ concept = 'atmosphere' }) {
     camera.updateMatrixWorld()
 
     const node = globe.current
-    node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS
-    node.rotation.x = swing * 0.22
+    const orbit = conceptRef.current === 'orbit'
+    if (orbit && !drag.current.active) {
+      drag.current.yaw += drag.current.vy * delta
+      drag.current.pitch = MathUtils.clamp(drag.current.pitch + drag.current.vp * delta, -0.65, 0.65)
+      const decay = Math.exp(-delta * 6)
+      drag.current.vy *= decay
+      drag.current.vp *= decay
+    }
+    node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS + (orbit ? drag.current.yaw : 0)
+    node.rotation.x = swing * 0.22 + (orbit ? drag.current.pitch : 0)
     node.rotation.z = swing * -0.12
     const scale = 1 + swing * 0.055
     node.scale.setScalar(scale)
@@ -346,16 +403,17 @@ function GlobeScene({ concept = 'atmosphere' }) {
       const facing = worldPoint.dot(cameraDirection) / worldPoint.length()
       const open = regionOpen(next, index)
       const projected = worldPoint.project(camera)
-      const visible = projected.z > 1 ? 0 : open * facingFade(facing)
+      const face = projected.z > 1 ? 0 : facingFade(facing)
+      const visible = open * face
       const core = cores.current[index]
       const bloom = blooms.current[index]
       if (core) {
-        core.color.set(graticule ? '#ffffff' : '#f4feff')
-        core.opacity = graticule ? visible : 0.35 + visible * 0.65
+        core.color.set(graticule ? '#ffffff' : orbit ? '#f4ecd4' : '#f4feff')
+        core.opacity = orbit ? face : graticule ? visible : 0.35 + visible * 0.65
       }
       if (bloom) {
-        bloom.color.set(graticule ? '#ffffff' : '#7adfff')
-        bloom.opacity = visible * (graticule ? 0.45 : 0.7)
+        bloom.color.set(graticule ? '#ffffff' : orbit ? '#e7c56b' : '#7adfff')
+        bloom.opacity = orbit ? face * 0.28 : visible * (graticule ? 0.45 : 0.7)
       }
       points.push({
         id: region.id,
@@ -363,6 +421,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
         x: (projected.x * 0.5 + 0.5) * size.width,
         y: (-projected.y * 0.5 + 0.5) * size.height,
         visible,
+        facing: face,
       })
     })
     pushAnchors(points)
@@ -372,6 +431,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
     <>
       <Stars />
       {concept === 'atmosphere' && <Halos />}
+      {concept === 'orbit' && <OrbitRings />}
       <group ref={globe}>
         <mesh visible={concept === 'atmosphere'}>
           <sphereGeometry args={[RADIUS, 96, 96]} />
@@ -387,6 +447,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
           />
         </mesh>
         {concept === 'graticule' && <GraticuleGlobe />}
+        {concept === 'orbit' && <GreenGlobe map={map} />}
         <mesh visible={concept === 'atmosphere'} scale={1.045}>
           <sphereGeometry args={[RADIUS, 64, 64]} />
           <shaderMaterial

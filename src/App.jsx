@@ -77,8 +77,30 @@ function branchPath(x1, y1, x2, y2) {
   return `M ${x} ${y} L ${x} ${y2.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`
 }
 
+function paintOrbitCards(root, points) {
+  const ranked = [...points].sort((a, b) => b.facing - a.facing)
+  const placed = []
+  ranked.forEach((point) => {
+    const card = root.querySelector(`[data-orbit-card="${point.id}"]`)
+    if (!card) return
+    const crowded = placed.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < 120)
+    const shown = crowded ? 0 : Math.min(1, Math.max(0, point.facing))
+    if (shown > 0.25) placed.push(point)
+    const width = card.offsetWidth
+    const height = card.offsetHeight
+    const x = point.x >= window.innerWidth * 0.5 ? point.x + 18 : point.x - width - 18
+    const y = point.y - height * 0.45
+    card.style.opacity = String(shown)
+    card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
+  })
+}
+
 function paintLinks(root, points) {
   if (!root) return
+  if (root.querySelector('[data-orbit-card]')) {
+    paintOrbitCards(root, points)
+    return
+  }
   points.forEach((point) => {
     const card = root.querySelector(`[data-region="${point.id}"]`)
     const wire = root.querySelector(`[data-wire="${point.id}"]`)
@@ -172,29 +194,41 @@ export default function App() {
       </p>
 
       <div className="field" ref={field}>
-        <svg className="wires" aria-hidden="true">
-          {REGIONS.map((region) => (
-            <g key={region.id}>
-              <path data-wire={region.id} className="wire-base" />
-              <path data-flow={region.id} className="wire-flow" />
-              <circle data-joint={region.id} r="2.4" />
-            </g>
-          ))}
-        </svg>
-        {REGIONS.map((region) => (
-          <article
-            key={region.id}
-            className="card"
-            data-region={region.id}
-            data-side={region.side}
-            data-slot={region.slot}
-          >
-            <i className="dot" />
-            <p className="kicker">{region.kicker}</p>
-            <h2>{region.title}</h2>
-            <p className="body">{region.text}</p>
-          </article>
-        ))}
+        {concept === 'orbit' ? (
+          REGIONS.map((region) => (
+            <article key={region.id} className="orbit-card" data-orbit-card={region.id}>
+              <p className="kicker">{region.kicker}</p>
+              <h2>{region.title}</h2>
+              <p className="body">{region.text}</p>
+            </article>
+          ))
+        ) : (
+          <>
+            <svg className="wires" aria-hidden="true">
+              {REGIONS.map((region) => (
+                <g key={region.id}>
+                  <path data-wire={region.id} className="wire-base" />
+                  <path data-flow={region.id} className="wire-flow" />
+                  <circle data-joint={region.id} r="2.4" />
+                </g>
+              ))}
+            </svg>
+            {REGIONS.map((region) => (
+              <article
+                key={region.id}
+                className="card"
+                data-region={region.id}
+                data-side={region.side}
+                data-slot={region.slot}
+              >
+                <i className="dot" />
+                <p className="kicker">{region.kicker}</p>
+                <h2>{region.title}</h2>
+                <p className="body">{region.text}</p>
+              </article>
+            ))}
+          </>
+        )}
       </div>
 
       <p className="credit" style={{ opacity: 1 - open * 0.85 }}>
@@ -220,8 +254,8 @@ export default function App() {
       </p>
 
       <p className="sr-only">
-        스크롤하면 구체가 다가오며 회전하고, 표면의 지점에서 지역 기록이 선으로 이어집니다. 대기와
-        경위선 버튼으로 행성 형태를 바꿀 수 있습니다.
+        스크롤하면 구체가 다가오며 회전합니다. 궤도에서는 마우스로 구체를 돌리면 지역 기록이 표면과
+        함께 움직입니다. 대기, 경위선, 궤도 버튼으로 행성 형태를 바꿀 수 있습니다.
       </p>
       <Loader />
     </>
