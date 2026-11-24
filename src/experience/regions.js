@@ -1,87 +1,20 @@
+import { copy } from '../copy'
+
 export const LOCK_Y = (-105 * Math.PI) / 180
 
-export const REGIONS = [
-  {
-    id: 'north',
-    lat: 52,
-    lng: 10,
-    side: 'left',
-    slot: 'nw',
-    kicker: '52°N  ·  10°E',
-    title: '북해 연안',
-    text: '얕은 바다와 낮은 구름이 겹치는 가장자리.',
-  },
-  {
-    id: 'west',
-    lat: 18,
-    lng: -18,
-    side: 'left',
-    slot: 'sw',
-    kicker: '18°N  ·  18°W',
-    title: '서안 사구',
-    text: '모래가 바다 쪽으로 기울어진 건조한 면.',
-  },
-  {
-    id: 'east',
-    lat: 24,
-    lng: 48,
-    side: 'right',
-    slot: 'ne',
-    kicker: '24°N  ·  48°E',
-    title: '동쪽 고원',
-    text: '해가 오래 머무는 건조한 고지.',
-  },
-  {
-    id: 'south',
-    lat: -28,
-    lng: 22,
-    side: 'right',
-    slot: 'se',
-    kicker: '28°S  ·  22°E',
-    title: '남쪽 대지',
-    text: '평평하고 어두운 내륙. 바람이 먼저 도착한다.',
-  },
-  {
-    id: 'pacific-north',
-    lat: 40,
-    lng: 155,
-    side: 'right',
-    slot: 'ne',
-    kicker: '40°N  ·  155°E',
-    title: '북태평양',
-    text: '차가운 해류가 느리게 도는 넓은 바다.',
-  },
-  {
-    id: 'pacific-central',
-    lat: 21,
-    lng: -157,
-    side: 'left',
-    slot: 'nw',
-    kicker: '21°N  ·  157°W',
-    title: '중앙 열도',
-    text: '따뜻한 물 한가운데 떠 있는 작은 섬들.',
-  },
-  {
-    id: 'pacific-south',
-    lat: -20,
-    lng: -170,
-    side: 'left',
-    slot: 'sw',
-    kicker: '20°S  ·  170°W',
-    title: '남태평양',
-    text: '얕고 맑은 바다. 바람이 오래 머문다.',
-  },
-  {
-    id: 'pacific-east',
-    lat: -33,
-    lng: -72,
-    side: 'right',
-    slot: 'se',
-    kicker: '33°S  ·  72°W',
-    title: '서쪽 절벽',
-    text: '대륙이 태평양을 만나는 긴 가장자리.',
-  },
+const PLACES = [
+  { id: 'seoul', lat: 37.57, lng: 126.98 },
+  { id: 'london', lat: 51.51, lng: -0.13 },
+  { id: 'new-york', lat: 40.71, lng: -74.01 },
+  { id: 'sao-paulo', lat: -23.55, lng: -46.63 },
+  { id: 'singapore', lat: 1.35, lng: 103.82 },
+  { id: 'sydney', lat: -33.87, lng: 151.21 },
 ]
+
+export const REGIONS = PLACES.map((place, index) => ({
+  ...place,
+  ...copy.offices[index],
+}))
 
 export function anchorPosition(lat, lng, radius) {
   const phi = ((lng + 180) / 360) * Math.PI * 2

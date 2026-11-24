@@ -5,58 +5,8 @@ import GlobeScene from './experience/Globe'
 import { bindPainter } from './experience/links'
 import { CONCEPTS } from './experience/concepts'
 import { REGIONS } from './experience/regions'
-import { dossierOpen, nudgeTarget, setTarget, subscribeJourney } from './experience/journey'
-
-function useJourneyInput() {
-  useEffect(() => {
-    const onWheel = (event) => {
-      event.preventDefault()
-      const line = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1
-      nudgeTarget(event.deltaY * line * 0.0004)
-    }
-
-    const onKey = (event) => {
-      if (event.key === 'ArrowDown' || event.key === 'PageDown') {
-        event.preventDefault()
-        nudgeTarget(0.08)
-      } else if (event.key === 'ArrowUp' || event.key === 'PageUp') {
-        event.preventDefault()
-        nudgeTarget(-0.08)
-      } else if (event.key === 'Home') {
-        setTarget(0)
-      } else if (event.key === 'End') {
-        setTarget(1)
-      }
-    }
-
-    let lastY = null
-    const onTouchStart = (event) => {
-      if (event.target.closest('a, button')) {
-        lastY = null
-        return
-      }
-      lastY = event.touches[0].clientY
-    }
-    const onTouchMove = (event) => {
-      if (lastY == null) return
-      const y = event.touches[0].clientY
-      nudgeTarget((lastY - y) * 0.0016)
-      lastY = y
-      event.preventDefault()
-    }
-
-    window.addEventListener('wheel', onWheel, { passive: false })
-    window.addEventListener('keydown', onKey)
-    window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
-    return () => {
-      window.removeEventListener('wheel', onWheel)
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('touchstart', onTouchStart)
-      window.removeEventListener('touchmove', onTouchMove)
-    }
-  }, [])
-}
+import { dossierOpen, setTarget, subscribeJourney } from './experience/journey'
+import { copy } from './copy'
 
 function Loader() {
   const { progress, active, total } = useProgress()
@@ -65,8 +15,8 @@ function Loader() {
 
   return (
     <div className="loader" role="status">
-      <strong>원일점</strong>
-      <span>{total === 0 ? '불러오는 중' : `${Math.round(progress)}%`}</span>
+      <strong>{copy.brand}</strong>
+      <span>{total === 0 ? copy.loader : `${Math.round(progress)}%`}</span>
     </div>
   )
 }
@@ -81,78 +31,326 @@ function paintCards(root, points) {
     const crowded = placed.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < 150)
     const shown = crowded ? 0 : Math.min(1, Math.max(0, point.facing))
     if (shown > 0.25) placed.push(point)
-    const onRight = point.x >= window.innerWidth * 0.5
-    card.dataset.side = onRight ? 'right' : 'left'
+    const margin = 12
     const width = card.offsetWidth
-    const x = onRight ? point.x + 16 : point.x - width - 16
-    const y = point.y - 26
+    const onRight = point.x >= window.innerWidth * 0.5
+    const preferred = onRight ? point.x + 16 : point.x - width - 16
+    const x = Math.min(window.innerWidth - width - margin, Math.max(margin, preferred))
+    card.dataset.side = x > point.x ? 'right' : 'left'
+    const y = Math.min(window.innerHeight - card.offsetHeight - 72, Math.max(72, point.y - 26))
     const scale = Number.isFinite(point.scale) ? point.scale : 1
     card.style.opacity = String(shown)
     card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`
   })
 }
 
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value))
+}
+
+function localProgress(node, view) {
+  if (!node) return 0
+  const rect = node.getBoundingClientRect()
+  const total = Math.max(1, node.offsetHeight - view)
+  return clamp01(-rect.top / total)
+}
+
+function Reel({ items, progress, hovered, onHover }) {
+  const cursor = hovered == null ? progress * (items.length - 1) : hovered
+  const active = Math.max(0, Math.min(items.length - 1, Math.round(cursor)))
+  const item = items[active]
+
+  return (
+    <div
+      className="reel"
+      onMouseLeave={() => onHover(null)}
+    >
+      <div className="reel-words">
+        {items.map((entry, index) => {
+          const delta = cursor - index
+          const near = 1 - clamp01(Math.abs(delta))
+          const shown = delta > -0.85
+          return (
+            <button
+              key={entry.name}
+              type="button"
+              className="reel-word"
+              style={{
+                opacity: shown ? 0.22 + near * 0.78 : 0,
+                transform: `translate3d(0, ${(index - cursor) * 7.2}vh, 0) scale(${0.34 + near * 0.66})`,
+              }}
+              onMouseEnter={() => onHover(index)}
+              onFocus={() => onHover(index)}
+              onBlur={() => onHover(null)}
+            >
+              {entry.name}
+            </button>
+          )
+        })}
+      </div>
+      <p className="reel-copy" key={item.name}>
+        {item.text}
+        {item.roles ? <span>{item.roles}</span> : null}
+      </p>
+    </div>
+  )
+}
+
 export default function App() {
-  const [progress, setProgress] = useState(0)
+  const [journey, setJourney] = useState(0)
   const [concept, setConcept] = useState(CONCEPTS[0].id)
+  const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0], reveal: 0, armed: false })
+  const [hoveredWork, setHoveredWork] = useState(null)
+  const [covering, setCovering] = useState(false)
   const field = useRef(null)
-  useJourneyInput()
+  const scenes = useRef([])
+  const swapLock = useRef(false)
 
   useEffect(() => {
     document.documentElement.dataset.concept = concept
   }, [concept])
 
-  useEffect(() => subscribeJourney(setProgress), [])
+  useEffect(() => subscribeJourney(setJourney), [])
   useEffect(() => bindPainter((points) => paintCards(field.current, points)), [])
 
-  const open = dossierOpen(progress)
-  const hint = progress < 0.03 ? 1 : progress > 0.16 ? 0 : 1 - (progress - 0.03) / 0.13
+  useEffect(() => {
+    const onMove = (event) => {
+      const x = (event.clientX / window.innerWidth) * 2 - 1
+      const y = (event.clientY / window.innerHeight) * 2 - 1
+      document.documentElement.style.setProperty('--px', x.toFixed(3))
+      document.documentElement.style.setProperty('--py', y.toFixed(3))
+    }
+    window.addEventListener('pointermove', onMove)
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+
+  useEffect(() => {
+    let frame = 0
+    const measure = () => {
+      const view = window.innerHeight
+      const local = scenes.current.map((node) => localProgress(node, view))
+      let active = 0
+      scenes.current.forEach((node, index) => {
+        if (!node) return
+        const rect = node.getBoundingClientRect()
+        if (rect.top <= view * 0.4 && rect.bottom >= view * 0.6) active = index
+      })
+      const globe = scenes.current[4]
+      const globeRect = globe?.getBoundingClientRect()
+      const inGlobe = globeRect ? globeRect.top < view * 0.45 : false
+      const reveal = inGlobe ? 1 : clamp01((local[3] - 0.48) / 0.42)
+      const armed = globeRect ? globeRect.top <= view * 0.08 && globeRect.bottom >= view * 0.8 : false
+      setTarget((inGlobe ? local[4] : reveal * 0.35) * 0.16)
+      setPlay((current) => {
+        const sameActive = current.active === active
+        const sameReveal = Math.abs(current.reveal - reveal) < 0.01
+        const sameArmed = current.armed === armed
+        const sameLocal = current.local.every((value, index) => Math.abs(value - local[index]) < 0.004)
+        if (sameActive && sameReveal && sameArmed && sameLocal) return current
+        return { active, local, reveal, armed }
+      })
+      document.documentElement.classList.toggle('is-globe', armed)
+    }
+
+    const onScroll = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+
+    measure()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      document.documentElement.classList.remove('is-globe')
+    }
+  }, [])
+
+  const selectConcept = (id) => {
+    if (id === concept || swapLock.current) return
+    swapLock.current = true
+    setCovering(true)
+    window.setTimeout(() => {
+      setConcept(id)
+      window.setTimeout(() => {
+        setCovering(false)
+        swapLock.current = false
+      }, 260)
+    }, 240)
+  }
+
+  const goToScene = (index) => {
+    scenes.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const enter = play.local[0]
+  const enterLeave = clamp01((enter - 0.62) / 0.38)
+  const enterLift = clamp01(enter / 0.45)
+  const line1 = clamp01((enter - 0.16) / 0.18) * (1 - enterLeave)
+  const line2 = clamp01((enter - 0.3) / 0.18) * (1 - enterLeave)
+  const door = play.local[3]
+  const doorLeave = clamp01((door - 0.4) / 0.38)
+  const open = dossierOpen(journey)
+  const stylesOn = play.reveal > 0.65
 
   return (
     <>
       <Canvas
         className="stage"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          opacity: play.reveal,
+        }}
         camera={{ fov: 30, near: 0.1, far: 160, position: [0, 1.15, 9.8] }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
         <color attach="background" args={['#000000']} />
         <Suspense fallback={null}>
-          <GlobeScene concept={concept} />
+          <GlobeScene concept={concept} armed={play.armed} />
         </Suspense>
       </Canvas>
-      <div className="veil" style={{ opacity: 0.75 + open * 0.25 }} />
+      <div className="veil" style={{ opacity: play.reveal * (0.75 + open * 0.25) }} />
+      <div className="face-cover" style={{ opacity: covering ? 1 : 0 }} />
 
-      <button className="mark" type="button" onClick={() => setTarget(0)}>
-        <strong>원일점</strong>
-        <em>APHELION</em>
+      <button className="mark" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        {copy.brand}
       </button>
 
-      <div className="tools">
-        <div className="concepts" role="group" aria-label="스타일">
-          {CONCEPTS.map((item) => (
+      <div className="chrome-right">
+        <div className="scene-nav" role="tablist" aria-label="Scenes">
+          {copy.scenes.map((label, index) => (
             <button
-              key={item.id}
+              key={label}
               type="button"
-              className={concept === item.id ? 'is-on' : ''}
-              aria-pressed={concept === item.id}
-              onClick={() => setConcept(item.id)}
+              role="tab"
+              aria-selected={play.active === index}
+              className={play.active === index ? 'is-on' : ''}
+              onClick={() => goToScene(index)}
             >
-              {item.label}
+              {label}
             </button>
           ))}
         </div>
-        <button className="jump" type="button" onClick={() => setTarget(1)}>
-          지역
-        </button>
+        <div
+          className="tools"
+          style={{ opacity: play.reveal, pointerEvents: stylesOn ? 'auto' : 'none' }}
+        >
+          <div className="concepts" role="group" aria-label={copy.stylesLabel}>
+            {CONCEPTS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={concept === item.id ? 'is-on' : ''}
+                aria-pressed={concept === item.id}
+                tabIndex={stylesOn ? 0 : -1}
+                onClick={() => selectConcept(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <p className="hint" style={{ opacity: hint }}>
-        스크롤
-        <i />
-      </p>
+      <main>
+        <section
+          className="scene scene-solid scene-enter"
+          ref={(node) => {
+            scenes.current[0] = node
+          }}
+        >
+          <div className="scene-sticky">
+            <div
+              className="enter"
+              style={{
+                opacity: 1 - enterLeave,
+                transform: `translate3d(calc(var(--px, 0) * 16px), calc(var(--py, 0) * 10px - ${enterLift * 6 + enterLeave * 18}vh), 0)`,
+              }}
+            >
+              <h1>{copy.brand}</h1>
+              <p style={{ opacity: line1 }}>{copy.enter.line1}</p>
+              <p style={{ opacity: line2 }}>{copy.enter.line2}</p>
+            </div>
+          </div>
+        </section>
 
-      <div className="field" ref={field}>
+        <section
+          className="scene scene-solid"
+          ref={(node) => {
+            scenes.current[1] = node
+          }}
+        >
+          <div className="scene-sticky">
+            <Reel items={copy.practice} progress={play.local[1]} hovered={null} onHover={() => {}} />
+          </div>
+        </section>
+
+        <section
+          className="scene scene-solid scene-work"
+          ref={(node) => {
+            scenes.current[2] = node
+          }}
+        >
+          <div className="scene-sticky">
+            <Reel
+              items={copy.works}
+              progress={play.local[2]}
+              hovered={hoveredWork}
+              onHover={setHoveredWork}
+            />
+          </div>
+        </section>
+
+        <section
+          className="scene scene-door"
+          ref={(node) => {
+            scenes.current[3] = node
+          }}
+          style={{ background: `rgba(0, 0, 0, ${1 - clamp01((door - 0.5) / 0.4)})` }}
+        >
+          <div className="scene-sticky">
+            <div
+              className="door"
+              style={{
+                opacity: 1 - doorLeave,
+                transform: `translate3d(0, ${-doorLeave * 16}vh, 0)`,
+              }}
+            >
+              <h2>{copy.door.title}</h2>
+              <p style={{ opacity: clamp01(door / 0.22) * (1 - doorLeave) }}>{copy.door.text}</p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="scene scene-globe"
+          ref={(node) => {
+            scenes.current[4] = node
+          }}
+          aria-label={copy.officesLabel}
+        >
+          <div className="scene-sticky globe-sticky">
+            <div className="globe-copy">
+              <h2>{copy.officesLabel}</h2>
+              <p>{copy.drag}</p>
+            </div>
+            <p className="contact">
+              {copy.contact}
+              <a href={`mailto:${copy.email}`}>{copy.email}</a>
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <div className="field" ref={field} style={{ opacity: play.reveal }} aria-hidden={play.reveal < 0.5}>
         {REGIONS.map((region) => (
           <article key={region.id} className="card" data-region={region.id}>
             <i className="dot" />
@@ -163,17 +361,17 @@ export default function App() {
         ))}
       </div>
 
-      <p className="credit" style={{ opacity: 1 - open * 0.85 }}>
+      <p className="credit" style={{ opacity: play.reveal * (1 - open * 0.85) }}>
         {concept === 'graticule' ? (
           <>
-            해안선{' '}
+            {copy.coastlines}{' '}
             <a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">
               Natural Earth
             </a>
           </>
         ) : (
           <>
-            구체 텍스처{' '}
+            {copy.globeTexture}{' '}
             <a href="https://github.com/dataarts/webgl-globe" target="_blank" rel="noreferrer">
               WebGL Globe
             </a>
@@ -185,10 +383,7 @@ export default function App() {
         )}
       </p>
 
-      <p className="sr-only">
-        스크롤하면 구체가 다가오며 회전하고, 마우스로 돌리면 지역 카드가 표면과 함께 움직입니다.
-        스타일 1, 2, 3 버튼으로 행성 형태를 바꿀 수 있습니다.
-      </p>
+      <p className="sr-only">{copy.assist}</p>
       <Loader />
     </>
   )

@@ -322,22 +322,35 @@ function GraticuleGlobe() {
   )
 }
 
-function GlobeScene({ concept = 'atmosphere' }) {
+function GlobeScene({ concept = 'atmosphere', armed = false }) {
   const map = useTexture('/textures/world.jpg')
   const globe = useRef(null)
   const sky = useRef({ x: 0, y: 0, z: 0 })
   const surface = useRef(null)
   const conceptRef = useRef(concept)
+  const armedRef = useRef(armed)
   conceptRef.current = concept
+  armedRef.current = armed
   const anchors = useRef([])
   const cores = useRef([])
   const blooms = useRef([])
   const drag = useRef({ active: false, yaw: 0, pitch: 0, vy: 0, vp: 0, x: 0, y: 0, t: 0 })
+  const intro = useRef(0)
+
+  useEffect(() => {
+    if (armed) return undefined
+    drag.current.active = false
+    drag.current.vy = 0
+    drag.current.vp = 0
+    document.documentElement.classList.remove('is-turning')
+    return undefined
+  }, [armed])
 
   useEffect(() => {
     const onDown = (event) => {
+      if (!armedRef.current) return
       if (event.pointerType !== 'mouse' || event.button !== 0) return
-      if (event.target.closest?.('a, button')) return
+      if (event.target.closest?.('a, button, .sheet')) return
       drag.current.active = true
       drag.current.x = event.clientX
       drag.current.y = event.clientY
@@ -421,6 +434,7 @@ function GlobeScene({ concept = 'atmosphere' }) {
       surface.current.uniforms.uSweep.value = (dive * 1.4) % 1
     }
     const graticule = conceptRef.current === 'graticule'
+    intro.current = Math.min(1, Math.max(0, intro.current + delta * (armedRef.current ? 0.45 : -1.2)))
 
     cameraDirection.copy(camera.position).normalize()
     const points = []
@@ -437,7 +451,8 @@ function GlobeScene({ concept = 'atmosphere' }) {
       const depth = Math.min(1, Math.max(0, (distance - front) / Math.max(0.001, limb - front)))
       const cardScale = 1 - depth * depth * 0.42
       const projected = worldPoint.project(camera)
-      const face = projected.z > 1 ? 0 : facingFade(facing)
+      const lit = Math.min(1, Math.max(0, (intro.current - index * 0.1) / 0.16))
+      const face = (projected.z > 1 ? 0 : facingFade(facing)) * lit
       const core = cores.current[index]
       const bloom = blooms.current[index]
       if (core) {
