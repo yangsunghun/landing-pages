@@ -103,7 +103,7 @@ export function GreenGlobe({ map }) {
   )
 }
 
-export function OrbitRings() {
+export function OrbitRings({ active = true }) {
   const rings = useMemo(() => RINGS.map((ring) => ({ ...ring, geometry: makeRing(ring.radius) })), [])
   const spins = useRef([])
   const materials = useRef([])
@@ -116,6 +116,7 @@ export function OrbitRings() {
   )
 
   useFrame(({ clock }) => {
+    if (!active) return
     const fade = 1 - dossierOpen(getJourney().progress) * 0.45
     rings.forEach((ring, index) => {
       const spin = spins.current[index]

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import {
@@ -6,12 +6,11 @@ import {
   BackSide,
   BufferAttribute,
   BufferGeometry,
-  CanvasTexture,
   MathUtils,
   Vector3,
 } from 'three'
 import { commitProgress, diveAmount, dossierOpen, getJourney } from './journey'
-import { buildCoastPositions, buildGraticulePositions, buildLandCanvas } from './graticule'
+import { getGraticuleBundle, warmupGraticule } from './graticule'
 import { GreenGlobe, OrbitRings } from './orbit-globe'
 import { pushAnchors } from './links'
 import { LOCK_Y, REGIONS, anchorPosition } from './regions'
@@ -212,13 +211,14 @@ function Stars({ sky }) {
   )
 }
 
-function Halos() {
+function Halos({ active = true }) {
   const inner = useRef(null)
   const outer = useRef(null)
   const innerMaterial = useRef(null)
   const outerMaterial = useRef(null)
 
   useFrame(({ clock }) => {
+    if (!active) return
     const progress = getJourney().progress
     const dive = diveAmount(progress)
     const open = dossierOpen(progress)
@@ -294,14 +294,7 @@ function VectorLines({ positions, strength, back }) {
 }
 
 function GraticuleGlobe() {
-  const grid = useMemo(() => buildGraticulePositions(RADIUS), [])
-  const coast = useMemo(() => buildCoastPositions(RADIUS * 1.006), [])
-  const landMap = useMemo(() => {
-    const texture = new CanvasTexture(buildLandCanvas())
-    texture.flipY = true
-    texture.needsUpdate = true
-    return texture
-  }, [])
+  const { grid, coast, landMap } = useMemo(() => getGraticuleBundle(RADIUS), [])
 
   return (
     <group>
@@ -336,6 +329,20 @@ function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
   const blooms = useRef([])
   const drag = useRef({ active: false, yaw: 0, pitch: 0, vy: 0, vp: 0, x: 0, y: 0, t: 0 })
   const intro = useRef(0)
+
+  useEffect(() => {
+    let idleId
+    const run = () => warmupGraticule(RADIUS)
+    if (typeof requestIdleCallback === 'function') {
+      idleId = requestIdleCallback(run, { timeout: 4000 })
+    } else {
+      idleId = window.setTimeout(run, 200)
+    }
+    return () => {
+      if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idleId)
+      else window.clearTimeout(idleId)
+    }
+  }, [])
 
   useEffect(() => {
     if (armed) return undefined
@@ -479,51 +486,65 @@ function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
     pushAnchors(points)
   })
 
+  const isAtmosphere = concept === 'atmosphere'
+  const isGraticule = concept === 'graticule'
+  const isOrbit = concept === 'orbit'
+
   return (
     <>
       <Stars sky={sky} />
-      {concept === 'atmosphere' && <Halos />}
-      {concept === 'orbit' && <OrbitRings />}
+      <group visible={isAtmosphere}>
+        <Halos active={isAtmosphere} />
+      </group>
+      <group visible={isOrbit}>
+        <OrbitRings active={isOrbit} />
+      </group>
       <group ref={globe}>
-        <mesh visible={concept === 'atmosphere'}>
-          <sphereGeometry args={[RADIUS, 96, 96]} />
-          <shaderMaterial
-            ref={surface}
-            vertexShader={surfaceVertex}
-            fragmentShader={surfaceFragment}
-            uniforms={{
-              uMap: { value: map },
-              uSweep: { value: 0 },
-            }}
-            toneMapped={false}
-          />
-        </mesh>
-        {concept === 'graticule' && <GraticuleGlobe />}
-        {concept === 'orbit' && <GreenGlobe map={map} />}
-        <mesh visible={concept === 'atmosphere'} scale={1.045}>
-          <sphereGeometry args={[RADIUS, 64, 64]} />
-          <shaderMaterial
-            vertexShader={atmosphereVertex}
-            fragmentShader={atmosphereFragment}
-            side={BackSide}
-            transparent
-            depthWrite={false}
-            blending={AdditiveBlending}
-            toneMapped={false}
-          />
-        </mesh>
-        <mesh visible={concept === 'atmosphere'} scale={1.16}>
-          <sphereGeometry args={[RADIUS, 48, 48]} />
-          <shaderMaterial
-            vertexShader={atmosphereVertex}
-            fragmentShader={hazeFragment}
-            side={BackSide}
-            transparent
-            depthWrite={false}
-            blending={AdditiveBlending}
-            toneMapped={false}
-          />
-        </mesh>
+        <group visible={isAtmosphere}>
+          <mesh>
+            <sphereGeometry args={[RADIUS, 96, 96]} />
+            <shaderMaterial
+              ref={surface}
+              vertexShader={surfaceVertex}
+              fragmentShader={surfaceFragment}
+              uniforms={{
+                uMap: { value: map },
+                uSweep: { value: 0 },
+              }}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh scale={1.045}>
+            <sphereGeometry args={[RADIUS, 64, 64]} />
+            <shaderMaterial
+              vertexShader={atmosphereVertex}
+              fragmentShader={atmosphereFragment}
+              side={BackSide}
+              transparent
+              depthWrite={false}
+              blending={AdditiveBlending}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh scale={1.16}>
+            <sphereGeometry args={[RADIUS, 48, 48]} />
+            <shaderMaterial
+              vertexShader={atmosphereVertex}
+              fragmentShader={hazeFragment}
+              side={BackSide}
+              transparent
+              depthWrite={false}
+              blending={AdditiveBlending}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+        <group visible={isGraticule}>
+          <GraticuleGlobe />
+        </group>
+        <group visible={isOrbit}>
+          <GreenGlobe map={map} />
+        </group>
         {REGIONS.map((region, index) => (
           <group
             key={region.id}
@@ -564,4 +585,4 @@ function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
   )
 }
 
-export default GlobeScene
+export default memo(GlobeScene)

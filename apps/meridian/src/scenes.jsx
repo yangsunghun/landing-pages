@@ -183,7 +183,6 @@ export function EnterScene({ progress, live = true, introBurst = 0 }) {
               </span>
             ))}
           </h1>
-          <p className="instrument-hint">{copy.enter.hint}</p>
           <LineReveal show={line1 > 0.02}>{copy.enter.line1}</LineReveal>
           <LineReveal show={line2 > 0.02}>{copy.enter.line2}</LineReveal>
         </div>
@@ -445,7 +444,6 @@ export function WorkStage({ progress, live = true }) {
           </article>
         )
       })}
-      <p className="deck-hint">{copy.workHint}</p>
     </div>
   )
 }

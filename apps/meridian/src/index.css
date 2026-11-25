@@ -84,13 +84,6 @@ html.is-turning .stage {
   opacity: 0.1;
 }
 
-@media (hover: none) {
-  .globe-hud__arc,
-  .globe-hud__value {
-    display: none;
-  }
-}
-
 html.theme-switching .card {
   backdrop-filter: none !important;
 }
@@ -98,7 +91,6 @@ html.theme-switching .card {
 .mark,
 .tools,
 .hint,
-.credit,
 .loader {
   z-index: 4;
 }
@@ -349,15 +341,6 @@ html[data-concept='orbit'] .card .kicker {
 html[data-concept='orbit'] .card .dot {
   background: #f6edd4;
   box-shadow: 0 0 10px rgba(232, 196, 120, 0.9);
-}
-
-.face-cover {
-  position: fixed;
-  inset: 0;
-  z-index: 5;
-  background: #000;
-  pointer-events: none;
-  transition: opacity 0.26s ease;
 }
 
 main {
@@ -652,52 +635,6 @@ a.slot-btn:focus-visible .slot-btn__b {
 
 .door h2 span.is-lit {
   opacity: 1;
-}
-
-.globe-hud {
-  position: absolute;
-  right: 8vw;
-  bottom: 22vh;
-  display: grid;
-  gap: 6px;
-  justify-items: end;
-  opacity: 0.35;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-}
-
-.globe-hud.is-armed {
-  opacity: 1;
-}
-
-.globe-hud__arc {
-  width: 72px;
-  height: 72px;
-  transform: rotate(calc(var(--globe-yaw-deg, 270) * 1deg));
-}
-
-.globe-hud__ring {
-  fill: none;
-  stroke: rgba(231, 238, 246, 0.22);
-  stroke-width: 1;
-}
-
-.globe-hud__sweep {
-  fill: none;
-  stroke: #e7eef6;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-
-.globe-hud__label {
-  font-size: 10px;
-  letter-spacing: 0.22em;
-}
-
-.globe-hud__value {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  font-variant-numeric: tabular-nums;
 }
 
 .enter,
@@ -1343,20 +1280,6 @@ html.is-turning .stage {
   left: -4px;
 }
 
-.credit {
-  position: fixed;
-  left: 32px;
-  bottom: 18px;
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.credit a {
-  color: inherit;
-}
-
 .loader {
   position: fixed;
   inset: 0;
@@ -1482,8 +1405,4 @@ html.is-turning .stage {
     font-size: 12px;
   }
 
-  .credit {
-    left: 16px;
-    bottom: 10px;
-  }
 }

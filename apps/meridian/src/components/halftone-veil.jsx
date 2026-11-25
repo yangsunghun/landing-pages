@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 function paintHalftone(ctx, width, height) {
   const step = 5
@@ -17,39 +17,50 @@ function paintHalftone(ctx, width, height) {
 
 export function HalftoneVeil() {
   const canvasRef = useRef(null)
-  const [active, setActive] = useState(false)
+  const sizeRef = useRef({ width: 0, height: 0 })
 
   useEffect(() => {
-    const sync = () => setActive(document.documentElement.classList.contains('theme-switching'))
-    sync()
-    const observer = new MutationObserver(sync)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!active) return undefined
     const canvas = canvasRef.current
     if (!canvas) return undefined
 
     const dpr = Math.min(2, window.devicePixelRatio || 1)
-    const resize = () => {
-      canvas.width = Math.floor(window.innerWidth * dpr)
-      canvas.height = Math.floor(window.innerHeight * dpr)
-      canvas.style.width = `${window.innerWidth}px`
-      canvas.style.height = `${window.innerHeight}px`
+    const draw = () => {
+      const width = window.innerWidth
+      const height = window.innerHeight
+      if (sizeRef.current.width === width && sizeRef.current.height === height) return
+      sizeRef.current = { width, height }
+      canvas.width = Math.floor(width * dpr)
+      canvas.height = Math.floor(height * dpr)
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
       const ctx = canvas.getContext('2d')
       if (!ctx) return
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      paintHalftone(ctx, window.innerWidth, window.innerHeight)
+      paintHalftone(ctx, width, height)
     }
 
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
-  }, [active])
+    let resizeFrame = 0
+    const onResize = () => {
+      cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(draw)
+    }
 
-  if (!active) return null
+    const bootstrap = () => draw()
+    let idleId
+    if (typeof requestIdleCallback === 'function') {
+      idleId = requestIdleCallback(bootstrap, { timeout: 2500 })
+    } else {
+      idleId = window.setTimeout(bootstrap, 120)
+    }
+
+    window.addEventListener('resize', onResize)
+    return () => {
+      cancelAnimationFrame(resizeFrame)
+      if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idleId)
+      else window.clearTimeout(idleId)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
 
   return <canvas ref={canvasRef} className="halftone-veil" aria-hidden="true" />
 }

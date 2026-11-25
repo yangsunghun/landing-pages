@@ -6,9 +6,7 @@ export const copy = {
   enter: {
     line1: 'One team for brand and product.',
     line2: 'Six cities, one standard.',
-    hint: 'DRAG A LETTER',
   },
-  workHint: 'DRAG SIDEWAYS',
   practice: [
     { name: 'BRAND', text: 'Name, voice, and campaign, held to one standard.' },
     { name: 'PRODUCT', text: 'Screens and design systems, designed in the form that ships.' },
@@ -36,13 +34,10 @@ export const copy = {
     text: 'Seoul is home. Each office handles the launches and clients in its region.',
   },
   officesLabel: 'OFFICES',
-  drag: 'DRAG A CITY FORWARD.',
   contact: 'WORK WITH US',
   email: 'seoul@meridian.example',
   scenes: ['01', '02', '03', '04', '05'],
   stylesLabel: 'Styles',
-  coastlines: 'Coastlines',
-  globeTexture: 'Globe texture',
   offices: [
     { kicker: 'HQ', title: 'SEOUL', text: 'Where the brand and product standard is set.' },
     { kicker: 'EUROPE', title: 'LONDON', text: 'Launches and accounts in Europe.' },

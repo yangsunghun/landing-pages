@@ -1,6 +1,27 @@
+import { CanvasTexture } from 'three'
 import coastlines from './coastline-110m.json'
 import land from './land-110m.json'
 import { anchorPosition } from './regions'
+
+const bundleCache = new Map()
+
+export function getGraticuleBundle(radius) {
+  if (bundleCache.has(radius)) return bundleCache.get(radius)
+  const landMap = new CanvasTexture(buildLandCanvas())
+  landMap.flipY = true
+  landMap.needsUpdate = true
+  const bundle = {
+    grid: buildGraticulePositions(radius),
+    coast: buildCoastPositions(radius * 1.006),
+    landMap,
+  }
+  bundleCache.set(radius, bundle)
+  return bundle
+}
+
+export function warmupGraticule(radius) {
+  getGraticuleBundle(radius)
+}
 
 function pushPoint(out, lat, lng, radius) {
   const [x, y, z] = anchorPosition(lat, lng, radius)

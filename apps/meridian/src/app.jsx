@@ -10,7 +10,6 @@ import { copy } from './copy'
 import { ConceptTools } from './components/concept-tools'
 import { SlotButton } from './components/slot-button'
 import { CurtainLoader } from './components/curtain-loader'
-import { GlobeHud } from './components/globe-hud'
 import { setActiveRegion } from './experience/active-region'
 import { HalftoneVeil } from './components/halftone-veil'
 import { SceneNav } from './components/scene-nav'
@@ -81,7 +80,6 @@ export default function App() {
   const [journey, setJourney] = useState(0)
   const [concept, setConcept] = useState(CONCEPTS[0].id)
   const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0], reveal: 0, armed: false })
-  const [covering, setCovering] = useState(false)
   const [introBurst, setIntroBurst] = useState(0)
   const field = useRef(null)
   const scenes = useRef([])
@@ -183,15 +181,13 @@ export default function App() {
     if (id === concept || swapLock.current) return
     swapLock.current = true
     document.documentElement.classList.add('theme-switching')
-    setCovering(true)
-    window.setTimeout(() => {
-      setConcept(id)
-      window.setTimeout(() => {
-        setCovering(false)
+    setConcept(id)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('theme-switching')
         swapLock.current = false
-        window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 850)
-      }, 260)
-    }, 240)
+      })
+    })
   }
 
   const goToScene = (index) => {
@@ -233,8 +229,6 @@ export default function App() {
         className={`veil${play.reveal > 0.32 ? ' is-globe-veil' : ''}`}
         style={{ opacity: play.reveal * (0.75 + open * 0.25) }}
       />
-      <div className="face-cover" style={{ opacity: covering ? 1 : 0 }} />
-
       <SlotButton className="mark scene-tab" labelA={copy.brand} labelB="TOP" onClick={() => scrollTo(0)} />
 
       <div className="chrome-right">
@@ -305,7 +299,6 @@ export default function App() {
           <div className="scene-sticky globe-sticky">
             <div className="globe-copy">
               <h2>{copy.officesLabel}</h2>
-              <p>{copy.drag}</p>
             </div>
             <p className="contact">
               {copy.contact}
@@ -316,7 +309,6 @@ export default function App() {
                 </span>
               </a>
             </p>
-            <GlobeHud armed={play.armed} visible={play.reveal > 0.2} live={sceneLive[4]} />
           </div>
         </section>
       </main>
@@ -331,28 +323,6 @@ export default function App() {
           </article>
         ))}
       </div>
-
-      <p className="credit" style={{ opacity: play.reveal * (1 - open * 0.85) }}>
-        {concept === 'graticule' ? (
-          <>
-            {copy.coastlines}{' '}
-            <a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">
-              Natural Earth
-            </a>
-          </>
-        ) : (
-          <>
-            {copy.globeTexture}{' '}
-            <a href="https://github.com/dataarts/webgl-globe" target="_blank" rel="noreferrer">
-              WebGL Globe
-            </a>
-            {' · '}
-            <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
-              Apache 2.0
-            </a>
-          </>
-        )}
-      </p>
 
       <p className="sr-only">{copy.assist}</p>
       <Loader />
