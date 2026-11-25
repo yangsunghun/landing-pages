@@ -31,11 +31,14 @@ function DigitStrip({ digit, animate }) {
   )
 }
 
-export function OdometerReadout({ value, className = '', animate = true }) {
+export function OdometerReadout({ value, className = '', animate = true, precision = 4 }) {
   const chars = useMemo(() => {
-    const text = typeof value === 'number' ? value.toFixed(4) : String(value)
+    const text =
+      typeof value === 'number'
+        ? value.toFixed(Math.max(0, precision))
+        : String(value)
     return text.split('')
-  }, [value])
+  }, [value, precision])
 
   return (
     <strong className={`readout odometer ${className}`.trim()} aria-live="polite">

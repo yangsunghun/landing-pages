@@ -58,7 +58,7 @@ const streakFragment = /* glsl */ `
     float phase = fract(vT * uCount - uTime);
     float tail = smoothstep(0.62, 0.0, phase);
     float head = smoothstep(0.0, 0.02, phase) * smoothstep(0.16, 0.03, phase);
-    float alpha = (0.035 + tail * 0.34 + head) * uFade;
+    float alpha = (0.02 + tail * 0.16 + head * 0.4) * uFade;
     if (alpha < 0.02) discard;
     vec3 color = mix(vec3(0.55, 0.36, 0.12), vec3(1.0, 0.94, 0.74), clamp(head + tail * 0.35, 0.0, 1.0));
     gl_FragColor = vec4(color, alpha);

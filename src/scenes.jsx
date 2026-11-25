@@ -145,8 +145,8 @@ export function EnterScene({ progress, live = true, introBurst = 0 }) {
         opacity: 1 - leave,
       }}
     >
-      <DotSpotlight />
-      <BlueprintGrid />
+      <DotSpotlight active={live} />
+      <BlueprintGrid active={live} />
       <div className="enter-window">
         <div
           className="enter instrument"
@@ -191,10 +191,11 @@ export function EnterScene({ progress, live = true, introBurst = 0 }) {
 
 const PLANE_MOUSE = [1.05, 0.68, 0.46]
 
-export function PracticeStage({ progress }) {
+export function PracticeStage({ progress, live = true }) {
   const cursor = progress * (copy.practice.length - 1)
-  const dialReadout = (180 + progress * 200).toFixed(1)
+  const dialValue = 180 + progress * 200
   const focus = Math.min(copy.practice.length - 1, Math.max(0, Math.round(cursor)))
+  const dialAnim = live && clamp01(1 - Math.abs(cursor))
 
   return (
     <div className="practice-stage">
@@ -220,7 +221,14 @@ export function PracticeStage({ progress }) {
                         <i key={tick} style={{ transform: `rotate(${tick * (360 / TICKS.length)}deg)` }} />
                       ))}
                     </div>
-                    <span className="dial-readout">{dialReadout}°</span>
+                    <span className="dial-readout">
+                      <OdometerReadout
+                        value={Number(dialValue.toFixed(1))}
+                        precision={1}
+                        animate={dialAnim > 0.35}
+                      />
+                      °
+                    </span>
                   </div>
                 )}
                 {index === 1 && (
@@ -398,8 +406,17 @@ export function WorkStage({ progress, live = true }) {
   )
 }
 
-export function DoorScene({ progress, reveal = 0 }) {
-  const leave = clamp01((progress - 0.4) / 0.38)
+export function DoorScene({ progress, reveal = 0, live = true }) {
+  const [staticVeil, setStaticVeil] = useState(false)
+  useEffect(() => {
+    setStaticVeil(
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        window.matchMedia('(hover: none)').matches,
+    )
+  }, [])
+
+  const leaveRaw = clamp01((progress - 0.4) / 0.38)
+  const leave = leaveRaw * (1 - clamp01(reveal * 1.05))
   const open = clamp01((progress - 0.06) / 0.72)
   const handoff = clamp01((progress - 0.58) / 0.35) * clamp01(reveal)
   const hole = clamp01((progress - 0.22) / 0.58) * (0.35 + reveal * 0.75)
@@ -414,21 +431,25 @@ export function DoorScene({ progress, reveal = 0 }) {
       className="door expanding-stage"
       style={{
         '--stage-open': open,
-        opacity: 1 - leave,
-        transform: `translate3d(0, ${-leave * 14}vh, 0)`,
+        opacity: 1 - leave * 0.85,
+        transform: `translate3d(0, ${-leave * 8}vh, 0)`,
         clipPath: `inset(${inset}% round ${round}px)`,
       }}
     >
-      {veilOpacity > 0.02 && (
-        <div
-          className="door-globe-veil"
-          aria-hidden="true"
-          style={{
-            opacity: veilOpacity,
-            maskImage: `radial-gradient(circle at calc(50% + var(--px-smooth, var(--px, 0)) * 7%) calc(46% + var(--py-smooth, var(--py, 0)) * 5%), transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
-            WebkitMaskImage: `radial-gradient(circle at calc(50% + var(--px-smooth, var(--px, 0)) * 7%) calc(46% + var(--py-smooth, var(--py, 0)) * 5%), transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
-          }}
-        />
+      {veilOpacity > 0.02 && live && !staticVeil ? (
+        <DoorEraserCanvas progress={progress} reveal={reveal} opacity={veilOpacity} hole={hole} live={live} />
+      ) : (
+        veilOpacity > 0.02 && (
+          <div
+            className="door-globe-veil"
+            aria-hidden="true"
+            style={{
+              opacity: veilOpacity,
+              maskImage: `radial-gradient(circle at calc(50% + var(--px-smooth, var(--px, 0)) * 7%) calc(46% + var(--py-smooth, var(--py, 0)) * 5%), transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
+              WebkitMaskImage: `radial-gradient(circle at calc(50% + var(--px-smooth, var(--px, 0)) * 7%) calc(46% + var(--py-smooth, var(--py, 0)) * 5%), transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
+            }}
+          />
+        )
       )}
       <h2>
         {words.map((word, index) => (
@@ -437,4 +458,7 @@ export function DoorScene({ progress, reveal = 0 }) {
           </span>
         ))}
       </h2>
-      <LineReveal show={clamp01(progress / 0.2) * (1
+      <LineReveal show={clamp01(progress / 0.2) * (1 - leave) > 0.02}>{copy.door.text}</LineReveal>
+    </div>
+  )
+}

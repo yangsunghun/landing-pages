@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 const POOL = 12
 
-export function BlueprintGrid() {
+export function BlueprintGrid({ active = true }) {
   const root = useRef(null)
   const pool = useRef([])
   const slot = useRef(0)
@@ -11,7 +11,7 @@ export function BlueprintGrid() {
 
   useEffect(() => {
     const host = root.current
-    if (!host) return undefined
+    if (!host || !active) return undefined
 
     const coarse = window.matchMedia('(hover: none)').matches
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -56,7 +56,7 @@ export function BlueprintGrid() {
       window.removeEventListener('resize', measure)
       stage.removeEventListener('pointermove', onMove)
     }
-  }, [])
+  }, [active])
 
   return (
     <div ref={root} className="blueprint-grid" aria-hidden="true">

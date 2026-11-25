@@ -139,7 +139,8 @@ html.theme-switching .card {
   opacity: 0.85;
 }
 
-.door-globe-veil {
+.door-globe-veil,
+.door-eraser-canvas {
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -147,7 +148,19 @@ html.theme-switching .card {
   pointer-events: none;
 }
 
-.door > :not(.door-globe-veil) {
+.door-eraser-canvas {
+  background: transparent;
+}
+
+.mark.slot-btn {
+  z-index: 6;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  clip-path: inset(0 0);
+}
+
+.door > :not(.door-globe-veil):not(.door-eraser-canvas) {
   position: relative;
   z-index: 1;
 }
@@ -593,10 +606,19 @@ a.slot-btn:focus-visible .slot-btn__b {
 }
 
 .dial-readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1em;
   font-size: 11px;
   letter-spacing: 0.18em;
   font-variant-numeric: tabular-nums;
   color: rgba(231, 238, 246, 0.58);
+}
+
+.dial-readout .odometer {
+  font-size: inherit;
+  letter-spacing: inherit;
+  color: inherit;
 }
 
 .deck-card__inner {
@@ -1187,29 +1209,6 @@ a.slot-btn:focus-visible .slot-btn__b {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
-}
-
-.globe-leadout {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin: 14px 0 0;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  transition: opacity 0.35s ease;
-}
-
-.globe-leadout__city {
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  color: #f7fbff;
-}
-
-.globe-leadout__lng {
-  font-variant-numeric: tabular-nums;
-  color: rgba(231, 238, 246, 0.62);
 }
 
 .contact {

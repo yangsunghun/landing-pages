@@ -8,9 +8,9 @@ import { REGIONS } from './experience/regions'
 import { dossierOpen, setTarget, subscribeJourney } from './experience/journey'
 import { copy } from './copy'
 import { ConceptTools } from './components/ConceptTools'
+import { SlotButton } from './components/SlotButton'
 import { CurtainLoader } from './components/CurtainLoader'
 import { GlobeHud } from './components/GlobeHud'
-import { GlobeLeadout } from './components/GlobeLeadout'
 import { setActiveRegion } from './experience/activeRegion'
 import { HalftoneVeil } from './components/HalftoneVeil'
 import { SceneNav } from './components/SceneNav'
@@ -35,7 +35,14 @@ function Loader() {
 }
 
 function paintCards(root, points) {
-  if (!root) return
+  if (!root) {
+    setActiveRegion(null, 0)
+    return
+  }
+  if (!points.length) {
+    setActiveRegion(null, 0)
+    return
+  }
   const ranked = [...points].sort((a, b) => b.facing - a.facing)
   const lead = ranked[0]
   setActiveRegion(lead?.id, lead?.facing ?? 0)
@@ -134,10 +141,12 @@ export default function App() {
       })
       const globe = scenes.current[4]
       const globeRect = globe?.getBoundingClientRect()
-      const inGlobe = globeRect ? globeRect.top < view * 0.45 : false
-      const reveal = inGlobe ? 1 : clamp01((local[3] - 0.48) / 0.42)
+      const doorReveal = clamp01((local[3] - 0.48) / 0.42)
+      const globeReveal = clamp01((local[4] - 0.02) / 0.38)
+      const reveal = Math.max(doorReveal, globeReveal)
       const armed = globeRect ? globeRect.top <= view * 0.08 && globeRect.bottom >= view * 0.8 : false
-      setTarget((inGlobe ? local[4] : reveal * 0.35) * 0.16)
+      const journeyDrive = Math.max(doorReveal * 0.42, local[4] * 0.9)
+      setTarget(journeyDrive * 0.16)
       setPlay((current) => {
         const sameActive = current.active === active
         const sameReveal = Math.abs(current.reveal - reveal) < 0.01
@@ -223,9 +232,7 @@ export default function App() {
       <div className="veil" style={{ opacity: play.reveal * (0.75 + open * 0.25) }} />
       <div className="face-cover" style={{ opacity: covering ? 1 : 0 }} />
 
-      <button className="mark" type="button" onClick={() => scrollTo(0)}>
-        {copy.brand}
-      </button>
+      <SlotButton className="mark scene-tab" labelA={copy.brand} labelB="TOP" onClick={() => scrollTo(0)} />
 
       <div className="chrome-right">
         <SceneNav labels={copy.scenes} active={play.active} onPick={goToScene} />
@@ -280,7 +287,7 @@ export default function App() {
           style={{ background: `rgba(0, 0, 0, ${1 - clamp01((door - 0.5) / 0.4)})` }}
         >
           <div className="scene-sticky">
-            <DoorScene progress={play.local[3]} reveal={play.reveal} />
+            <DoorScene progress={play.local[3]} reveal={play.reveal} live={sceneLive[3]} />
           </div>
         </section>
 
@@ -296,7 +303,6 @@ export default function App() {
             <div className="globe-copy">
               <h2>{copy.officesLabel}</h2>
               <p>{copy.drag}</p>
-              <GlobeLeadout armed={play.armed} reveal={play.reveal} />
             </div>
             <p className="contact">
               {copy.contact}
