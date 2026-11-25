@@ -18,6 +18,7 @@ import { useLenisScroll } from './hooks/use-lenis-scroll'
 import { useSceneInView } from './hooks/use-scene-in-view'
 import { useSmoothPointer } from './hooks/use-smooth-pointer'
 import { bindIntroGate } from './lib/intro-gate'
+import { ArchiveStage } from './components/archive-stage'
 import { SpacesStage } from './components/spaces-stage'
 import { DoorScene, EnterScene, PracticeStage, WorkStage } from './scenes'
 
@@ -80,7 +81,7 @@ function localProgress(node, view) {
 export default function App() {
   const [journey, setJourney] = useState(0)
   const [concept, setConcept] = useState(CONCEPTS[0].id)
-  const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0, 0], reveal: 0, armed: false })
+  const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0, 0, 0], reveal: 0, armed: false })
   const [introBurst, setIntroBurst] = useState(0)
   const field = useRef(null)
   const scenes = useRef([])
@@ -90,7 +91,7 @@ export default function App() {
   const { scrollTo, lenisRef } = useLenisScroll(() => measureRef.current())
   const sceneLive = useSceneInView(scenes)
   useHeaderOnDark(scenes)
-  const smoothPointer = sceneLive.slice(0, 5).some(Boolean)
+  const smoothPointer = sceneLive.slice(0, 6).some(Boolean)
   useSmoothPointer(smoothPointer)
 
   useEffect(() => {
@@ -138,9 +139,9 @@ export default function App() {
         const rect = node.getBoundingClientRect()
         if (rect.top <= view * 0.4 && rect.bottom >= view * 0.6) active = index
       })
-      const doorProgress = local[4] ?? 0
-      const globeProgress = local[5] ?? 0
-      const globe = scenes.current[5]
+      const doorProgress = local[5] ?? 0
+      const globeProgress = local[6] ?? 0
+      const globe = scenes.current[6]
       const globeRect = globe?.getBoundingClientRect()
       const doorReveal = clamp01((doorProgress - 0.48) / 0.42)
       const globeReveal = clamp01((globeProgress - 0.02) / 0.38)
@@ -200,7 +201,7 @@ export default function App() {
     if (node) scrollTo(node, { offset: 0 })
   }
 
-  const door = play.local[4] ?? 0
+  const door = play.local[5] ?? 0
   const open = dossierOpen(journey)
   const stylesOn = play.reveal > 0.65
   const globeActive = play.reveal > 0.05 || door > 0.42 || play.armed
@@ -292,15 +293,26 @@ export default function App() {
         </section>
 
         <section
+          className="scene scene-solid scene-archive"
+          ref={(node) => {
+            scenes.current[4] = node
+          }}
+        >
+          <div className="scene-sticky">
+            <ArchiveStage progress={play.local[4] ?? 0} live={sceneLive[4]} />
+          </div>
+        </section>
+
+        <section
           className="scene scene-door"
           data-section-dark=""
           ref={(node) => {
-            scenes.current[4] = node
+            scenes.current[5] = node
           }}
           style={{ background: `rgba(0, 0, 0, ${1 - clamp01((door - 0.5) / 0.4)})` }}
         >
           <div className="scene-sticky">
-            <DoorScene progress={play.local[4] ?? 0} reveal={play.reveal} live={sceneLive[4]} />
+            <DoorScene progress={play.local[5] ?? 0} reveal={play.reveal} live={sceneLive[5]} />
           </div>
         </section>
 
@@ -308,7 +320,7 @@ export default function App() {
           className="scene scene-globe"
           data-section-dark=""
           ref={(node) => {
-            scenes.current[5] = node
+            scenes.current[6] = node
           }}
           aria-label={copy.officesLabel}
         >

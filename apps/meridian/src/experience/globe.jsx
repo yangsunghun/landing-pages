@@ -357,7 +357,7 @@ function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
     const onDown = (event) => {
       if (!armedRef.current) return
       if (event.pointerType === 'mouse' && event.button !== 0) return
-      if (event.target.closest?.('a, button, .sheet, .chrome-right, .mark, .deck, .spaces-stage, .enter-stage, .practice-stage, .door')) return
+      if (event.target.closest?.('a, button, .sheet, .chrome-right, .mark, .deck, .spaces-stage, .archive-stage, .enter-stage, .practice-stage, .door')) return
       drag.current.active = true
       if (event.pointerType !== 'mouse') document.documentElement.setAttribute('data-lenis-prevent', '')
       drag.current.x = event.clientX

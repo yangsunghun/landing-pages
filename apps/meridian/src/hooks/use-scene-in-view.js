@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 export function useSceneInView(sectionRefs) {
-  const [live, setLive] = useState([true, false, false, false, false, false])
+  const [live, setLive] = useState([true, false, false, false, false, false, false])
 
   useEffect(() => {
     const nodes = sectionRefs.current.filter(Boolean)
