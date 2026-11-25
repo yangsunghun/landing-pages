@@ -28,6 +28,10 @@ body {
   touch-action: pan-y;
 }
 
+html.is-intro-locked body {
+  overflow: hidden;
+}
+
 button,
 a {
   font: inherit;
@@ -130,7 +134,8 @@ html.theme-switching .card {
   gap: 6px;
 }
 
-.concepts button {
+.concepts button,
+.concepts .concept-btn {
   padding: 7px 12px;
   border: 1px solid rgba(231, 238, 246, 0.2);
   border-radius: 999px;
@@ -139,10 +144,126 @@ html.theme-switching .card {
   color: rgba(231, 238, 246, 0.5);
 }
 
-.concepts button.is-on {
+.concepts button.is-on,
+.concept-btn.is-on {
   color: #f7fbff;
   border-color: rgba(247, 251, 255, 0.72);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.concept-btn {
+  clip-path: inset(0 50%);
+  transition:
+    clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
+  transition-delay: calc(var(--reveal-i, 0) * 0.09s);
+}
+
+.tools.is-revealed .concept-btn {
+  clip-path: inset(0 0);
+}
+
+html.chrome-on-dark .mark,
+html.chrome-on-dark .scene-nav button.is-on {
+  color: #f7fbff;
+}
+
+html.chrome-on-dark .scene-nav button {
+  color: rgba(247, 251, 255, 0.42);
+}
+
+html.chrome-on-dark .concepts .concept-btn {
+  border-color: rgba(247, 251, 255, 0.3);
+  color: rgba(247, 251, 255, 0.58);
+}
+
+.enter-stage.is-intro-burst .letter-row span {
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100vh;
+  background: #000;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  transition: height 1.8s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.curtain.is-folding {
+  height: 0;
+  overflow: hidden;
+}
+
+.curtain__count {
+  font-size: clamp(48px, 12vw, 96px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.practice-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.flow-rail {
+  position: absolute;
+  right: 6vw;
+  top: 50%;
+  width: min(200px, 22vw);
+  display: grid;
+  gap: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.flow-rail__card {
+  padding: 12px 14px;
+  border: 1px solid rgba(231, 238, 246, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  transform-origin: right center;
+  transform: translate3d(0, 0, 0);
+  opacity: 0.42;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.45s ease;
+}
+
+.flow-rail__card[data-stacked='true'] {
+  transform: translate3d(12px, -6px, -30px) scale(0.94);
+  opacity: 0.22;
+}
+
+.flow-rail__card[data-active='true'] {
+  opacity: 1;
+  border-color: rgba(247, 251, 255, 0.55);
+  transform: translate3d(-6px, 0, 0);
+}
+
+.flow-rail__index {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(231, 238, 246, 0.48);
+}
+
+.flow-rail__card strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
 }
 
 html[data-concept='graticule'] .card {
@@ -1215,6 +1336,10 @@ html.is-turning .stage {
   .depth {
     margin-left: 22px;
     width: calc(100vw - 44px);
+  }
+
+  .flow-rail {
+    display: none;
   }
 
   .device {

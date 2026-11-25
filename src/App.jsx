@@ -7,9 +7,13 @@ import { CONCEPTS } from './experience/concepts'
 import { REGIONS } from './experience/regions'
 import { dossierOpen, setTarget, subscribeJourney } from './experience/journey'
 import { copy } from './copy'
+import { ConceptTools } from './components/ConceptTools'
+import { CurtainLoader } from './components/CurtainLoader'
 import { GlobeHud } from './components/GlobeHud'
 import { useLenisScroll } from './hooks/useLenisScroll'
+import { useSceneInView } from './hooks/useSceneInView'
 import { useSmoothPointer } from './hooks/useSmoothPointer'
+import { bindIntroGate } from './lib/introGate'
 import { DoorScene, EnterScene, PracticeStage, WorkStage } from './scenes'
 
 function Loader() {
@@ -64,12 +68,14 @@ export default function App() {
   const [concept, setConcept] = useState(CONCEPTS[0].id)
   const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0], reveal: 0, armed: false })
   const [covering, setCovering] = useState(false)
+  const [introBurst, setIntroBurst] = useState(0)
   const field = useRef(null)
   const scenes = useRef([])
   const swapLock = useRef(false)
   const measureRef = useRef(() => {})
 
-  const { scrollTo } = useLenisScroll(() => measureRef.current())
+  const { scrollTo, lenisRef } = useLenisScroll(() => measureRef.current())
+  const sceneLive = useSceneInView(scenes)
   useSmoothPointer()
 
   useEffect(() => {
@@ -78,6 +84,39 @@ export default function App() {
 
   useEffect(() => subscribeJourney(setJourney), [])
   useEffect(() => bindPainter((points) => paintCards(field.current, points)), [])
+
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduced || window.scrollY > 48) return undefined
+    if (sessionStorage.getItem('meridian-intro-played')) return undefined
+
+    let cleanup = () => {}
+    let attempts = 0
+    const wait = window.setInterval(() => {
+      attempts += 1
+      const lenis = lenisRef.current
+      if (!lenis && attempts < 120) return
+      window.clearInterval(wait)
+      cleanup = bindIntroGate({
+        lenis: lenis ?? null,
+        onStart: () => {
+          sessionStorage.setItem('meridian-intro-played', '1')
+          setIntroBurst((value) => value + 1)
+        },
+      })
+    }, 50)
+
+    return () => {
+      window.clearInterval(wait)
+      cleanup()
+    }
+  }, [lenisRef])
+
+  useEffect(() => {
+    const onDark = play.active >= 3 || play.reveal > 0.22
+    document.documentElement.classList.toggle('chrome-on-dark', onDark)
+    return () => document.documentElement.classList.remove('chrome-on-dark')
+  }, [play.active, play.reveal])
 
   useEffect(() => {
     let frame = 0
@@ -151,11 +190,14 @@ export default function App() {
   const door = play.local[3]
   const open = dossierOpen(journey)
   const stylesOn = play.reveal > 0.65
+  const globeActive = play.reveal > 0.05 || door > 0.42 || play.armed
 
   return (
     <>
+      <CurtainLoader />
       <Canvas
         className="stage"
+        frameloop={globeActive ? 'always' : 'never'}
         style={{
           position: 'fixed',
           inset: 0,
@@ -171,7 +213,7 @@ export default function App() {
       >
         <color attach="background" args={['#000000']} />
         <Suspense fallback={null}>
-          <GlobeScene concept={concept} armed={play.armed} />
+          <GlobeScene concept={concept} armed={play.armed} active={globeActive} />
         </Suspense>
       </Canvas>
       <div className="veil" style={{ opacity: play.reveal * (0.75 + open * 0.25) }} />
@@ -196,25 +238,12 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div
-          className="tools"
-          style={{ opacity: play.reveal, pointerEvents: stylesOn ? 'auto' : 'none' }}
-        >
-          <div className="concepts" role="group" aria-label={copy.stylesLabel}>
-            {CONCEPTS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={concept === item.id ? 'is-on' : ''}
-                aria-pressed={concept === item.id}
-                tabIndex={stylesOn ? 0 : -1}
-                onClick={() => selectConcept(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ConceptTools
+          concept={concept}
+          stylesOn={stylesOn}
+          reveal={play.reveal}
+          onSelect={selectConcept}
+        />
       </div>
 
       <main>
@@ -225,7 +254,7 @@ export default function App() {
           }}
         >
           <div className="scene-sticky">
-            <EnterScene progress={play.local[0]} />
+            <EnterScene progress={play.local[0]} live={sceneLive[0]} introBurst={introBurst} />
           </div>
         </section>
 
@@ -247,12 +276,13 @@ export default function App() {
           }}
         >
           <div className="scene-sticky">
-            <WorkStage progress={play.local[2]} />
+            <WorkStage progress={play.local[2]} live={sceneLive[2]} />
           </div>
         </section>
 
         <section
           className="scene scene-door"
+          data-section-dark=""
           ref={(node) => {
             scenes.current[3] = node
           }}
@@ -265,6 +295,7 @@ export default function App() {
 
         <section
           className="scene scene-globe"
+          data-section-dark=""
           ref={(node) => {
             scenes.current[4] = node
           }}

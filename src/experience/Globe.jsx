@@ -322,7 +322,7 @@ function GraticuleGlobe() {
   )
 }
 
-function GlobeScene({ concept = 'atmosphere', armed = false }) {
+function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
   const map = useTexture('/textures/world.jpg')
   const globe = useRef(null)
   const sky = useRef({ x: 0, y: 0, z: 0 })
@@ -394,6 +394,7 @@ function GlobeScene({ concept = 'atmosphere', armed = false }) {
   }, [])
 
   useFrame(({ camera, size }, delta) => {
+    if (!active) return
     const journey = getJourney()
     const next = MathUtils.damp(journey.progress, journey.target, 2.6, delta)
     commitProgress(next)

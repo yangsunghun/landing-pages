@@ -14,7 +14,8 @@ const BARS = Array.from({ length: 18 }, (_, index) => index)
 const LANES = [0, 1, 2, 3, 4]
 const LEDGER_ROWS = [0, 1, 2, 3, 4]
 
-export function EnterScene({ progress }) {
+export function EnterScene({ progress, live = true, introBurst = 0 }) {
+  const stageRef = useRef(null)
   const letterRefs = useRef([])
   const dotRefs = useRef([])
   const sim = useRef({
@@ -30,10 +31,29 @@ export function EnterScene({ progress }) {
   const line2 = clamp01((progress - 0.28) / 0.16) * (1 - leave)
 
   useEffect(() => {
+    if (!introBurst) return undefined
+    sim.current.letters.forEach((letter) => {
+      letter.x = 0
+      letter.y = 0
+      letter.vx = 0
+      letter.vy = 0
+    })
+    letterRefs.current.forEach((node) => {
+      if (node) node.style.transform = 'translate3d(0, 0, 0)'
+    })
+    stageRef.current?.classList.add('is-intro-burst')
+    const timer = window.setTimeout(() => stageRef.current?.classList.remove('is-intro-burst'), 1400)
+    return () => window.clearTimeout(timer)
+  }, [introBurst])
+
+  useEffect(() => {
+    if (!live) return undefined
     const state = sim.current
     state.letters = letterRefs.current.map(() => ({ x: 0, y: 0, vx: 0, vy: 0 }))
     let frame = 0
+    let running = true
     const tick = () => {
+      if (!running) return
       state.letters.forEach((letter, index) => {
         const node = letterRefs.current[index]
         if (!node) return
@@ -87,6 +107,7 @@ export function EnterScene({ progress }) {
     }
     frame = requestAnimationFrame(tick)
     const onMove = (event) => {
+      if (!running) return
       state.pointerX = event.clientX
       state.pointerY = event.clientY
       if (state.drag == null) return
@@ -103,16 +124,18 @@ export function EnterScene({ progress }) {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     return () => {
+      running = false
       cancelAnimationFrame(frame)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [])
+  }, [live])
 
   const retreat = 1 - clamp01(progress * 1.05) * 0.12
 
   return (
     <div
+      ref={stageRef}
       className="enter-stage"
       style={{
         transform: `scale(${retreat})`,
@@ -163,60 +186,80 @@ const PLANE_MOUSE = [1.05, 0.68, 0.46]
 export function PracticeStage({ progress }) {
   const cursor = progress * (copy.practice.length - 1)
   const dialReadout = (180 + progress * 200).toFixed(1)
+  const focus = Math.min(copy.practice.length - 1, Math.max(0, Math.round(cursor)))
 
   return (
-    <div className="depth" style={{ '--p': progress }}>
-      {copy.practice.map((item, index) => {
-        const delta = cursor - index
-        const near = 1 - clamp01(Math.abs(delta))
-        const factor = PLANE_MOUSE[index] ?? 0.5
-        return (
-          <article
-            key={item.name}
-            className="plane"
-            style={{
-              opacity: clamp01(delta + 1.15) * (0.22 + near * 0.78),
-              transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${36 * factor}px), calc(var(--py-smooth, var(--py, 0)) * ${24 * factor}px), ${near * 80}px) translate3d(0, ${(index - cursor) * 72}vh, 0) rotateX(${delta * -18}deg)`,
-            }}
-          >
-            <div className="device">
-              {index === 0 && (
-                <div className="dial-wrap">
-                  <div className="dial" aria-hidden="true">
-                  {TICKS.map((tick) => (
-                    <i key={tick} style={{ transform: `rotate(${tick * (360 / TICKS.length)}deg)` }} />
-                  ))}
+    <div className="practice-stage">
+      <div className="depth" style={{ '--p': progress }}>
+        {copy.practice.map((item, index) => {
+          const delta = cursor - index
+          const near = 1 - clamp01(Math.abs(delta))
+          const factor = PLANE_MOUSE[index] ?? 0.5
+          return (
+            <article
+              key={item.name}
+              className="plane"
+              style={{
+                opacity: clamp01(delta + 1.15) * (0.22 + near * 0.78),
+                transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${36 * factor}px), calc(var(--py-smooth, var(--py, 0)) * ${24 * factor}px), ${near * 80}px) translate3d(0, ${(index - cursor) * 72}vh, 0) rotateX(${delta * -18}deg)`,
+              }}
+            >
+              <div className="device">
+                {index === 0 && (
+                  <div className="dial-wrap">
+                    <div className="dial" aria-hidden="true">
+                      {TICKS.map((tick) => (
+                        <i key={tick} style={{ transform: `rotate(${tick * (360 / TICKS.length)}deg)` }} />
+                      ))}
+                    </div>
+                    <span className="dial-readout">{dialReadout}°</span>
                   </div>
-                  <span className="dial-readout">{dialReadout}°</span>
-                </div>
-              )}
-              {index === 1 && (
-                <div className="cells" aria-hidden="true">
-                  {CELLS.map((cell) => (
-                    <i key={cell} />
-                  ))}
-                </div>
-              )}
-              {index === 2 && (
-                <div className="lanes" aria-hidden="true">
-                  {LANES.map((lane) => (
-                    <i key={lane} />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <h2>{item.name}</h2>
-              <p>{item.text}</p>
-            </div>
-          </article>
-        )
-      })}
+                )}
+                {index === 1 && (
+                  <div className="cells" aria-hidden="true">
+                    {CELLS.map((cell) => (
+                      <i key={cell} />
+                    ))}
+                  </div>
+                )}
+                {index === 2 && (
+                  <div className="lanes" aria-hidden="true">
+                    {LANES.map((lane) => (
+                      <i key={lane} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2>{item.name}</h2>
+                <p>{item.text}</p>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+      <aside className="flow-rail" aria-hidden="true">
+        {copy.practice.map((item, index) => {
+          const active = focus === index
+          const stacked = index < focus
+          return (
+            <article
+              key={item.name}
+              className="flow-rail__card"
+              data-active={active ? 'true' : undefined}
+              data-stacked={stacked ? 'true' : undefined}
+            >
+              <span className="flow-rail__index">0{index + 1}</span>
+              <strong>{item.name}</strong>
+            </article>
+          )
+        })}
+      </aside>
     </div>
   )
 }
 
-export function WorkStage({ progress }) {
+export function WorkStage({ progress, live = true }) {
   const [shift, setShift] = useState(0)
   const [rate, setRate] = useState(1.084)
   const drag = useRef(null)
@@ -224,9 +267,12 @@ export function WorkStage({ progress }) {
   const cursor = Math.min(2, Math.max(0, progress * 2 + shift))
 
   useEffect(() => {
+    if (!live) return undefined
     let frame = 0
     let lastRate = 0
+    let running = true
     const tick = () => {
+      if (!running) return
       const px =
         Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px-smooth')) ||
         Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) ||
@@ -250,8 +296,11 @@ export function WorkStage({ progress }) {
       frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [])
+    return () => {
+      running = false
+      cancelAnimationFrame(frame)
+    }
+  }, [live])
 
   return (
     <div
