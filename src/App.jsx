@@ -10,6 +10,9 @@ import { copy } from './copy'
 import { ConceptTools } from './components/ConceptTools'
 import { CurtainLoader } from './components/CurtainLoader'
 import { GlobeHud } from './components/GlobeHud'
+import { HalftoneVeil } from './components/HalftoneVeil'
+import { SceneNav } from './components/SceneNav'
+import { useHeaderOnDark } from './hooks/useHeaderOnDark'
 import { useLenisScroll } from './hooks/useLenisScroll'
 import { useSceneInView } from './hooks/useSceneInView'
 import { useSmoothPointer } from './hooks/useSmoothPointer'
@@ -76,7 +79,9 @@ export default function App() {
 
   const { scrollTo, lenisRef } = useLenisScroll(() => measureRef.current())
   const sceneLive = useSceneInView(scenes)
-  useSmoothPointer()
+  useHeaderOnDark(scenes)
+  const pointerOn = sceneLive.slice(0, 4).some(Boolean)
+  useSmoothPointer(pointerOn)
 
   useEffect(() => {
     document.documentElement.dataset.concept = concept
@@ -111,12 +116,6 @@ export default function App() {
       cleanup()
     }
   }, [lenisRef])
-
-  useEffect(() => {
-    const onDark = play.active >= 3 || play.reveal > 0.22
-    document.documentElement.classList.toggle('chrome-on-dark', onDark)
-    return () => document.documentElement.classList.remove('chrome-on-dark')
-  }, [play.active, play.reveal])
 
   useEffect(() => {
     let frame = 0
@@ -195,6 +194,7 @@ export default function App() {
   return (
     <>
       <CurtainLoader />
+      <HalftoneVeil />
       <Canvas
         className="stage"
         frameloop={globeActive ? 'always' : 'never'}
@@ -224,20 +224,7 @@ export default function App() {
       </button>
 
       <div className="chrome-right">
-        <div className="scene-nav" role="tablist" aria-label="Scenes">
-          {copy.scenes.map((label, index) => (
-            <button
-              key={label}
-              type="button"
-              role="tab"
-              aria-selected={play.active === index}
-              className={play.active === index ? 'is-on' : ''}
-              onClick={() => goToScene(index)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <SceneNav labels={copy.scenes} active={play.active} onPick={goToScene} />
         <ConceptTools
           concept={concept}
           stylesOn={stylesOn}
@@ -289,7 +276,7 @@ export default function App() {
           style={{ background: `rgba(0, 0, 0, ${1 - clamp01((door - 0.5) / 0.4)})` }}
         >
           <div className="scene-sticky">
-            <DoorScene progress={play.local[3]} />
+            <DoorScene progress={play.local[3]} reveal={play.reveal} />
           </div>
         </section>
 
@@ -315,7 +302,7 @@ export default function App() {
                 </span>
               </a>
             </p>
-            <GlobeHud armed={play.armed} visible={play.reveal > 0.2} />
+            <GlobeHud armed={play.armed} visible={play.reveal > 0.2} live={sceneLive[4]} />
           </div>
         </section>
       </main>

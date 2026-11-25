@@ -1,0 +1,1 @@
+export const WORK_SLOTS = [{ pad: 0 }, { pad: '0 0 0 3vw' }, { pad: '0 1.5vw 0 0' }]

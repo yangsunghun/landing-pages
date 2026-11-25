@@ -1,11 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { lerp } from '../lib/motion'
 
-export function useSmoothPointer(amount = 0.08) {
+export function useSmoothPointer(enabled = true, amount = 0.08) {
   const smooth = useRef({ x: 0, y: 0, frame: 0 })
 
   useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const coarse = window.matchMedia('(hover: none)').matches
+    if (reduced || !enabled) return undefined
+
     const target = { x: 0, y: 0 }
+    const follow = coarse ? 1 : amount
 
     const onMove = (event) => {
       target.x = (event.clientX / window.innerWidth) * 2 - 1
@@ -16,8 +21,8 @@ export function useSmoothPointer(amount = 0.08) {
 
     let frame = 0
     const tick = () => {
-      smooth.current.x = lerp(smooth.current.x, target.x, amount)
-      smooth.current.y = lerp(smooth.current.y, target.y, amount)
+      smooth.current.x = lerp(smooth.current.x, target.x, follow)
+      smooth.current.y = lerp(smooth.current.y, target.y, follow)
       document.documentElement.style.setProperty('--px-smooth', smooth.current.x.toFixed(3))
       document.documentElement.style.setProperty('--py-smooth', smooth.current.y.toFixed(3))
       frame = requestAnimationFrame(tick)
@@ -29,5 +34,5 @@ export function useSmoothPointer(amount = 0.08) {
       window.removeEventListener('pointermove', onMove)
       cancelAnimationFrame(frame)
     }
-  }, [amount])
+  }, [amount, enabled])
 }

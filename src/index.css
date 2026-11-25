@@ -113,14 +113,49 @@ html.theme-switching .card {
   gap: 12px;
 }
 
+.scene-nav .scene-tab,
 .scene-nav button {
   font-size: 11px;
   letter-spacing: 0.16em;
   color: rgba(231, 238, 246, 0.34);
+  clip-path: inset(0 38%);
+  transition:
+    clip-path 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.25s ease;
 }
 
+.scene-nav .scene-tab.is-on,
 .scene-nav button.is-on {
   color: #f7fbff;
+  clip-path: inset(0 0);
+}
+
+.halftone-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+}
+
+.door-globe-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+  pointer-events: none;
+}
+
+.door > :not(.door-globe-veil) {
+  position: relative;
+  z-index: 1;
+}
+
+.scene-tab.slot-btn {
+  padding: 2px 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
 }
 
 .tools {
@@ -340,6 +375,42 @@ main {
   width: 100%;
   height: 100%;
   transform-origin: center center;
+  will-change: transform;
+}
+
+.enter-window {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10%;
+  bottom: -10%;
+  overflow: hidden;
+}
+
+.work-masthead {
+  position: absolute;
+  left: 50%;
+  top: 11vh;
+  z-index: 0;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.08em;
+  width: min(920px, 92vw);
+  transform: translateX(-50%);
+  pointer-events: none;
+  color: rgba(247, 251, 255, 0.55);
+}
+
+.work-masthead span {
+  display: inline-block;
+  font-size: clamp(28px, 4.5vw, 56px);
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  will-change: transform;
+}
+
+.deck-card__shell {
   will-change: transform;
 }
 
@@ -789,11 +860,13 @@ a.slot-btn:focus-visible .slot-btn__b {
   cursor: grabbing;
 }
 
-.deck article {
+.deck article,
+.deck .deck-card {
   position: absolute;
   left: 8vw;
-  top: 16vh;
+  top: 50%;
   width: min(680px, 70vw);
+  transform-origin: left center;
 }
 
 .deck h2 {

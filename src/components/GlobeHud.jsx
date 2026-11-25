@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
 
-export function GlobeHud({ armed, visible }) {
+export function GlobeHud({ armed, visible, live = true }) {
   const yawRef = useRef(null)
 
   useEffect(() => {
+    if (!live || (!armed && !visible)) return undefined
     let frame = 0
     const tick = () => {
       const raw = getComputedStyle(document.documentElement).getPropertyValue('--globe-yaw-deg').trim()
@@ -12,7 +13,7 @@ export function GlobeHud({ armed, visible }) {
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [])
+  }, [armed, visible, live])
 
   if (!armed && !visible) return null
 

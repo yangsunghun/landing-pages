@@ -4,6 +4,8 @@ import { BlueprintGrid } from './components/BlueprintGrid'
 import { DotSpotlight } from './components/DotSpotlight'
 import { LineReveal } from './components/LineReveal'
 import { OdometerReadout } from './components/OdometerReadout'
+import { WorkMasthead } from './components/WorkMasthead'
+import { WORK_SLOTS } from './lib/editorial'
 import { clamp01, revealedByProgress } from './lib/motion'
 
 const LETTERS = copy.brand.split('')
@@ -144,38 +146,43 @@ export function EnterScene({ progress, live = true, introBurst = 0 }) {
     >
       <DotSpotlight />
       <BlueprintGrid />
-      <div className="enter instrument" style={{ transform: `translate3d(0, ${-leave * 16}vh, 0)` }}>
-      <div className="orbit-dots" aria-hidden="true">
-        {DOTS.map((dot) => (
-          <i
-            key={dot}
-            ref={(node) => {
-              dotRefs.current[dot] = node
-            }}
-          />
-        ))}
-      </div>
-      <h1 className="letter-row">
-        {LETTERS.map((letter, index) => (
-          <span
-            key={`${letter}-${index}`}
-            ref={(node) => {
-              letterRefs.current[index] = node
-            }}
-            onPointerDown={(event) => {
-              const current = sim.current.letters[index] || { x: 0, y: 0 }
-              sim.current.drag = index
-              sim.current.grabX = event.clientX - current.x
-              sim.current.grabY = event.clientY - current.y
-            }}
-          >
-            {letter}
-          </span>
-        ))}
-      </h1>
-      <p className="instrument-hint">{copy.enter.hint}</p>
-      <LineReveal show={line1 > 0.02}>{copy.enter.line1}</LineReveal>
-      <LineReveal show={line2 > 0.02}>{copy.enter.line2}</LineReveal>
+      <div className="enter-window">
+        <div
+          className="enter instrument"
+          style={{ transform: `translate3d(0, calc(${progress * 18}% + ${-leave * 16}vh), 0)` }}
+        >
+          <div className="orbit-dots" aria-hidden="true">
+            {DOTS.map((dot) => (
+              <i
+                key={dot}
+                ref={(node) => {
+                  dotRefs.current[dot] = node
+                }}
+              />
+            ))}
+          </div>
+          <h1 className="letter-row">
+            {LETTERS.map((letter, index) => (
+              <span
+                key={`${letter}-${index}`}
+                ref={(node) => {
+                  letterRefs.current[index] = node
+                }}
+                onPointerDown={(event) => {
+                  const current = sim.current.letters[index] || { x: 0, y: 0 }
+                  sim.current.drag = index
+                  sim.current.grabX = event.clientX - current.x
+                  sim.current.grabY = event.clientY - current.y
+                }}
+              >
+                {letter}
+              </span>
+            ))}
+          </h1>
+          <p className="instrument-hint">{copy.enter.hint}</p>
+          <LineReveal show={line1 > 0.02}>{copy.enter.line1}</LineReveal>
+          <LineReveal show={line2 > 0.02}>{copy.enter.line2}</LineReveal>
+        </div>
       </div>
     </div>
   )
@@ -305,6 +312,7 @@ export function WorkStage({ progress, live = true }) {
   return (
     <div
       className="deck"
+      style={{ '--deck-p': progress }}
       onPointerDown={(event) => {
         if (event.target.closest('a, button')) return
         drag.current = event.clientX
@@ -323,54 +331,60 @@ export function WorkStage({ progress, live = true }) {
         window.addEventListener('pointerup', up)
       }}
     >
+      <WorkMasthead progress={progress} />
       {copy.works.map((work, index) => {
         const delta = index - cursor
         const near = 1 - clamp01(Math.abs(delta))
         const scrubOuter = delta * 36
-        const scrubInner = near * (6 + progress * 14)
+        const scrubHeavy = delta * 28 * (1 + progress * 0.35)
+        const scrubInner = near * (4 + progress * 12)
+        const slot = WORK_SLOTS[index] ?? WORK_SLOTS[0]
         return (
           <article
             key={work.name}
             className="deck-card"
             style={{
+              padding: slot.pad,
               opacity: 0.28 + near * 0.72,
-              transform: `translate3d(${scrubOuter}vw, 0, ${near * 70}px) rotateY(${delta * -9}deg)`,
+              transform: `translate3d(${scrubOuter}vw, -50%, ${near * 70}px) rotateY(${delta * -9}deg)`,
             }}
           >
-            <div
-              className="deck-card__inner"
-              style={{
-                transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${-scrubInner}px), calc(var(--py-smooth, var(--py, 0)) * ${scrubInner * 0.35}px), 0)`,
-              }}
-            >
-            {index === 0 && <OdometerReadout value={rate} animate={near > 0.45} />}
-            {index === 1 && (
-              <div className="bars" aria-hidden="true">
-                {BARS.map((bar) => (
-                  <i
-                    key={bar}
-                    ref={(node) => {
-                      bars.current[bar] = node
-                    }}
-                  />
-                ))}
+            <div className="deck-card__shell" style={{ transform: `translate3d(${scrubHeavy}px, 0, 0)` }}>
+              <div
+                className="deck-card__inner"
+                style={{
+                  transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${-scrubInner}px), calc(var(--py-smooth, var(--py, 0)) * ${scrubInner * 0.18}px), 0)`,
+                }}
+              >
+                {index === 0 && <OdometerReadout value={rate} animate={near > 0.45} />}
+                {index === 1 && (
+                  <div className="bars" aria-hidden="true">
+                    {BARS.map((bar) => (
+                      <i
+                        key={bar}
+                        ref={(node) => {
+                          bars.current[bar] = node
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                {index === 2 && (
+                  <div className={near > 0.72 ? 'ledger is-hot' : 'ledger'} aria-hidden="true">
+                    {LEDGER_ROWS.map((row) => (
+                      <i key={row} />
+                    ))}
+                  </div>
+                )}
+                <h2
+                  className="deck-title"
+                  style={{ letterSpacing: `${-0.06 + near * 0.08}em`, transform: `scale(${0.94 + near * 0.06})` }}
+                >
+                  {work.name}
+                </h2>
+                <p>{work.text}</p>
+                <span>{work.roles}</span>
               </div>
-            )}
-            {index === 2 && (
-              <div className={near > 0.72 ? 'ledger is-hot' : 'ledger'} aria-hidden="true">
-                {LEDGER_ROWS.map((row) => (
-                  <i key={row} />
-                ))}
-              </div>
-            )}
-            <h2
-              className="deck-title"
-              style={{ letterSpacing: `${-0.06 + near * 0.08}em`, transform: `scale(${0.94 + near * 0.06})` }}
-            >
-              {work.name}
-            </h2>
-            <p>{work.text}</p>
-            <span>{work.roles}</span>
             </div>
           </article>
         )
@@ -380,11 +394,14 @@ export function WorkStage({ progress, live = true }) {
   )
 }
 
-export function DoorScene({ progress }) {
+export function DoorScene({ progress, reveal = 0 }) {
   const leave = clamp01((progress - 0.4) / 0.38)
   const open = clamp01((progress - 0.06) / 0.72)
-  const inset = (1 - open) * 10
-  const round = (1 - open) * 14
+  const handoff = clamp01((progress - 0.58) / 0.35) * clamp01(reveal)
+  const hole = clamp01((progress - 0.22) / 0.58) * (0.35 + reveal * 0.75)
+  const veilOpacity = clamp01((progress - 0.18) / 0.35) * (1 - clamp01(reveal * 1.15))
+  const inset = (1 - open) * 10 * (1 - handoff * 0.85)
+  const round = (1 - open) * 14 * (1 - handoff)
   const words = copy.door.title.split(/\s+/)
   const lit = revealedByProgress(progress, words.length, 0, 0.73)
 
@@ -398,7 +415,17 @@ export function DoorScene({ progress }) {
         clipPath: `inset(${inset}% round ${round}px)`,
       }}
     >
-      <i className="portal" style={{ transform: `scale(${0.2 + progress * 2.8})`, opacity: 0.25 + progress * 0.55 }} />
+      {veilOpacity > 0.02 && (
+        <div
+          className="door-globe-veil"
+          aria-hidden="true"
+          style={{
+            opacity: veilOpacity,
+            maskImage: `radial-gradient(circle at 50% 46%, transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
+            WebkitMaskImage: `radial-gradient(circle at 50% 46%, transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
+          }}
+        />
+      )}
       <h2>
         {words.map((word, index) => (
           <span key={word} className={index < lit ? 'is-lit' : ''}>
