@@ -6,7 +6,9 @@ export const copy = {
   enter: {
     line1: 'One team for brand and product.',
     line2: 'Six cities, one standard.',
+    hint: 'DRAG A LETTER',
   },
+  workHint: 'DRAG SIDEWAYS',
   practice: [
     { name: 'BRAND', text: 'Name, voice, and campaign, held to one standard.' },
     { name: 'PRODUCT', text: 'Screens and design systems, designed in the form that ships.' },

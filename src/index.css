@@ -180,7 +180,7 @@ main {
 
 .scene-solid:nth-child(2),
 .scene-work {
-  height: 250vh;
+  height: 300vh;
 }
 
 .scene-door {
@@ -202,7 +202,317 @@ main {
 
 .enter,
 .door {
+  position: relative;
+  width: 100%;
   padding: 0 8vw;
+}
+
+.enter.instrument {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.orbit-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.orbit-dots i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(231, 238, 246, 0.72);
+}
+
+.letter-row {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  user-select: none;
+  touch-action: none;
+}
+
+.letter-row span {
+  display: inline-block;
+  cursor: grab;
+}
+
+.letter-row span:active {
+  cursor: grabbing;
+}
+
+.instrument-hint,
+.deck-hint {
+  margin: 22px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(231, 238, 246, 0.45);
+}
+
+.depth {
+  position: relative;
+  width: min(1100px, 92vw);
+  height: 100%;
+  margin-left: 6vw;
+  perspective: 1400px;
+}
+
+.plane {
+  position: absolute;
+  left: 0;
+  right: 6vw;
+  top: 18%;
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) 1fr;
+  gap: 36px;
+  align-items: center;
+  transform-origin: center left;
+}
+
+.plane h2 {
+  margin: 0;
+  font-size: clamp(56px, 8vw, 112px);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.plane p {
+  max-width: 28em;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.device {
+  height: 240px;
+  display: grid;
+  place-items: center;
+}
+
+.dial {
+  position: relative;
+  width: min(240px, 28vw);
+  height: min(240px, 28vw);
+  transform: rotate(calc(var(--p) * 200deg + var(--px, 0) * 80deg));
+}
+
+.dial i {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 1px;
+  height: 46%;
+  background: linear-gradient(#e7eef6, transparent);
+  transform-origin: bottom center;
+}
+
+.cells {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  width: min(240px, 28vw);
+  height: 180px;
+  transform: rotateX(calc(var(--py, 0) * 22deg)) rotateY(calc(var(--px, 0) * 26deg));
+}
+
+.cells i {
+  display: block;
+  flex: 1;
+  height: 100%;
+  background: rgba(231, 238, 246, 0.88);
+  transform-origin: center bottom;
+}
+
+.cells i:nth-child(4n + 1) {
+  transform: scaleY(calc(0.28 + (var(--py, 0) + 1) * 0.28));
+}
+
+.cells i:nth-child(4n + 2) {
+  transform: scaleY(calc(0.55 + (var(--px, 0) + 1) * 0.2 + var(--p) * 0.15));
+}
+
+.cells i:nth-child(4n + 3) {
+  transform: scaleY(calc(0.18 + (var(--py, 0) + 1) * 0.36));
+}
+
+.cells i:nth-child(4n) {
+  transform: scaleY(calc(0.72 - var(--p) * 0.28));
+}
+
+.lanes {
+  width: min(240px, 28vw);
+}
+
+.lanes i {
+  display: block;
+  height: 1px;
+  margin: 16px 0;
+  background: #e7eef6;
+}
+
+.lanes i:nth-child(1) {
+  width: 48%;
+  transform: translateX(calc(var(--px, 0) * 70px));
+}
+
+.lanes i:nth-child(2) {
+  width: 86%;
+  transform: translateX(calc(var(--px, 0) * -36px + var(--p) * 24px));
+}
+
+.lanes i:nth-child(3) {
+  width: 34%;
+  transform: translateX(calc(var(--py, 0) * 60px));
+}
+
+.lanes i:nth-child(4) {
+  width: 70%;
+  transform: translateX(calc(var(--px, 0) * 24px + var(--py, 0) * -20px));
+}
+
+.lanes i:nth-child(5) {
+  width: 52%;
+  transform: translateX(calc(var(--p) * 40px));
+}
+
+.deck {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 1400px;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.deck:active {
+  cursor: grabbing;
+}
+
+.deck article {
+  position: absolute;
+  left: 8vw;
+  top: 16vh;
+  width: min(680px, 70vw);
+}
+
+.deck h2 {
+  margin: 18px 0 0;
+  font-size: clamp(56px, 9vw, 120px);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.deck article > p {
+  max-width: 28em;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.deck span {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: rgba(231, 238, 246, 0.5);
+}
+
+.readout {
+  display: block;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 64px;
+}
+
+.bars i {
+  display: block;
+  width: 4px;
+  background: #e7eef6;
+}
+
+.ledger {
+  width: 180px;
+}
+
+.ledger i {
+  display: block;
+  height: 1px;
+  margin: 12px 0;
+  background: rgba(231, 238, 246, 0.8);
+  transition: transform 0.45s ease;
+}
+
+.ledger i:nth-child(1) {
+  width: 42%;
+  transform: translateX(-28px);
+}
+
+.ledger i:nth-child(2) {
+  width: 78%;
+  transform: translateX(18px);
+}
+
+.ledger i:nth-child(3) {
+  width: 55%;
+  transform: translateX(-12px);
+}
+
+.ledger i:nth-child(4) {
+  width: 90%;
+  transform: translateX(22px);
+}
+
+.ledger i:nth-child(5) {
+  width: 36%;
+  transform: translateX(-20px);
+}
+
+.ledger.is-hot i {
+  transform: translateX(0);
+}
+
+.deck-hint {
+  position: absolute;
+  left: 8vw;
+  bottom: 10vh;
+}
+
+.portal {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 42vmin;
+  height: 42vmin;
+  margin: -21vmin 0 0 -21vmin;
+  border: 1px solid rgba(231, 238, 246, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.door {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
 }
 
 .enter h1,
@@ -222,6 +532,13 @@ main {
   line-height: 1.4;
   letter-spacing: -0.03em;
   color: var(--muted);
+}
+
+.enter .instrument-hint {
+  max-width: none;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(231, 238, 246, 0.45);
 }
 
 .reel {
@@ -616,6 +933,33 @@ html.is-turning .stage {
   .enter,
   .door {
     padding: 0 22px;
+  }
+
+  .plane {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    right: 22px;
+  }
+
+  .depth {
+    margin-left: 22px;
+    width: calc(100vw - 44px);
+  }
+
+  .device {
+    height: 130px;
+    justify-content: start;
+    overflow: hidden;
+  }
+
+  .cells {
+    height: 110px;
+  }
+
+  .deck article,
+  .deck-hint {
+    left: 22px;
+    width: calc(100vw - 44px);
   }
 
   .card {

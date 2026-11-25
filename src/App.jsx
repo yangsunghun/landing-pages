@@ -7,6 +7,7 @@ import { CONCEPTS } from './experience/concepts'
 import { REGIONS } from './experience/regions'
 import { dossierOpen, setTarget, subscribeJourney } from './experience/journey'
 import { copy } from './copy'
+import { DoorScene, EnterScene, PracticeStage, WorkStage } from './scenes'
 
 function Loader() {
   const { progress, active, total } = useProgress()
@@ -55,52 +56,10 @@ function localProgress(node, view) {
   return clamp01(-rect.top / total)
 }
 
-function Reel({ items, progress, hovered, onHover }) {
-  const cursor = hovered == null ? progress * (items.length - 1) : hovered
-  const active = Math.max(0, Math.min(items.length - 1, Math.round(cursor)))
-  const item = items[active]
-
-  return (
-    <div
-      className="reel"
-      onMouseLeave={() => onHover(null)}
-    >
-      <div className="reel-words">
-        {items.map((entry, index) => {
-          const delta = cursor - index
-          const near = 1 - clamp01(Math.abs(delta))
-          const shown = delta > -0.85
-          return (
-            <button
-              key={entry.name}
-              type="button"
-              className="reel-word"
-              style={{
-                opacity: shown ? 0.22 + near * 0.78 : 0,
-                transform: `translate3d(0, ${(index - cursor) * 7.2}vh, 0) scale(${0.34 + near * 0.66})`,
-              }}
-              onMouseEnter={() => onHover(index)}
-              onFocus={() => onHover(index)}
-              onBlur={() => onHover(null)}
-            >
-              {entry.name}
-            </button>
-          )
-        })}
-      </div>
-      <p className="reel-copy" key={item.name}>
-        {item.text}
-        {item.roles ? <span>{item.roles}</span> : null}
-      </p>
-    </div>
-  )
-}
-
 export default function App() {
   const [journey, setJourney] = useState(0)
   const [concept, setConcept] = useState(CONCEPTS[0].id)
   const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0], reveal: 0, armed: false })
-  const [hoveredWork, setHoveredWork] = useState(null)
   const [covering, setCovering] = useState(false)
   const field = useRef(null)
   const scenes = useRef([])
@@ -185,13 +144,7 @@ export default function App() {
     scenes.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const enter = play.local[0]
-  const enterLeave = clamp01((enter - 0.62) / 0.38)
-  const enterLift = clamp01(enter / 0.45)
-  const line1 = clamp01((enter - 0.16) / 0.18) * (1 - enterLeave)
-  const line2 = clamp01((enter - 0.3) / 0.18) * (1 - enterLeave)
   const door = play.local[3]
-  const doorLeave = clamp01((door - 0.4) / 0.38)
   const open = dossierOpen(journey)
   const stylesOn = play.reveal > 0.65
 
@@ -268,17 +221,7 @@ export default function App() {
           }}
         >
           <div className="scene-sticky">
-            <div
-              className="enter"
-              style={{
-                opacity: 1 - enterLeave,
-                transform: `translate3d(calc(var(--px, 0) * 16px), calc(var(--py, 0) * 10px - ${enterLift * 6 + enterLeave * 18}vh), 0)`,
-              }}
-            >
-              <h1>{copy.brand}</h1>
-              <p style={{ opacity: line1 }}>{copy.enter.line1}</p>
-              <p style={{ opacity: line2 }}>{copy.enter.line2}</p>
-            </div>
+            <EnterScene progress={play.local[0]} />
           </div>
         </section>
 
@@ -289,7 +232,7 @@ export default function App() {
           }}
         >
           <div className="scene-sticky">
-            <Reel items={copy.practice} progress={play.local[1]} hovered={null} onHover={() => {}} />
+            <PracticeStage progress={play.local[1]} />
           </div>
         </section>
 
@@ -300,12 +243,7 @@ export default function App() {
           }}
         >
           <div className="scene-sticky">
-            <Reel
-              items={copy.works}
-              progress={play.local[2]}
-              hovered={hoveredWork}
-              onHover={setHoveredWork}
-            />
+            <WorkStage progress={play.local[2]} />
           </div>
         </section>
 
@@ -317,16 +255,7 @@ export default function App() {
           style={{ background: `rgba(0, 0, 0, ${1 - clamp01((door - 0.5) / 0.4)})` }}
         >
           <div className="scene-sticky">
-            <div
-              className="door"
-              style={{
-                opacity: 1 - doorLeave,
-                transform: `translate3d(0, ${-doorLeave * 16}vh, 0)`,
-              }}
-            >
-              <h2>{copy.door.title}</h2>
-              <p style={{ opacity: clamp01(door / 0.22) * (1 - doorLeave) }}>{copy.door.text}</p>
-            </div>
+            <DoorScene progress={play.local[3]} />
           </div>
         </section>
 
