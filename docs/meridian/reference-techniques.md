@@ -12,7 +12,7 @@
 
 | 계층 | 역할 | 레퍼런스 공통 선택 | 우리 프로젝트 대응 |
 | --- | --- | --- | --- |
-| 스크롤 정규화 | 휠·터치 입력을 감쇠된 연속 값으로 변환 | `Lenis` (`lerp: 0.1~0.2`, 모달·드로어에 `data-lenis-prevent`) | `lenis` 도입 후 `App.jsx`의 `measure()`와 단일 RAF에서 동기화 |
+| 스크롤 정규화 | 휠·터치 입력을 감쇠된 연속 값으로 변환 | `Lenis` (`lerp: 0.1~0.2`, 모달·드로어에 `data-lenis-prevent`) | `lenis` 도입 후 `app.jsx`의 `measure()`와 단일 RAF에서 동기화 |
 | 시간·진행도 구동 | 스크롤 위치를 `0..1` 순수 함수로 매핑 | `GSAP ScrollTrigger (scrub)` 또는 `getBoundingClientRect()` 정규화 | 짧은 전환은 CSS/GSAP, 연속 장면 재생은 순수 `clamp01` 진행도 유지 |
 | 합성 레이어 분리 | 레이아웃 재계산 없이 60fps 유지 | `transform: translate3d()`, `opacity`, `clip-path`, `mask-image`만 변경 | `top/left/width/height` 애니메이션 금지, `will-change`는 활성 구간만 부여 |
 | 화면 밖 휴면 | 보이지 않는 구간의 연산 차단 | `IntersectionObserver`로 RAF·비디오·셰이더 일시정지 | 장면별 `inView` 플래그로 비활성 장면 루프 및 WebGL 드로우콜 정지 |
@@ -402,30 +402,30 @@ const EDITORIAL_SLOTS = [
 
 ## 5. 우리 랜딩페이지(`MERIDIAN`) 장면별 결합 설계
 
-현재 프로젝트의 5개 장면 구조(`docs/landing-plan.md`, `src/App.jsx`, `src/scenes.jsx`, `src/experience/Globe.jsx`)를 유지하면서 세 레퍼런스의 기법을 충돌 없이 배정한 매핑이다.
+현재 프로젝트의 5개 장면 구조(`docs/meridian/landing-plan.md`, `apps/meridian/src/app.jsx`, `apps/meridian/src/scenes.jsx`, `apps/meridian/src/experience/globe.jsx`)를 유지하면서 세 레퍼런스의 기법을 충돌 없이 배정한 매핑이다.
 
 | 장면 | 현재 파일 | 적용할 레퍼런스 기법 | 기대 효과 |
 | --- | --- | --- | --- |
-| **전역 스크롤·크롬** | `src/App.jsx`, `src/index.css` | `Lenis` 스무스 스크롤 + 디센더 보정 라인 마스크 + 듀얼 슬롯 버튼(`STYLE 1~3`, `WORK WITH US`) + 테마 전환 시 `backdrop-filter` 일시 해제 | 페이지 전체의 감속감과 버튼·타이포 마감 밀도 상승 |
-| **01 입구 (`EnterScene`)** | `src/scenes.jsx` | `onlines`의 **포인터 스포트라이트 도트 매트릭스** 또는 **제로 DOM 블루프린트 격자 풀** + `spykercars`의 **스크롤 시 `scale(1 -> 0.88)` 후퇴 전환** | 글자 드래그·밀치기 주변으로 배경 격자/도트가 반응하며 입체적으로 열림 |
-| **02 하는 일 (`PracticeStage`)** | `src/scenes.jsx` | `spykercars`의 **플로우 게이트 스테이지 전환** + **기계식 눈금 다이얼·오도미터 리드아웃** + **멀티 플레인 포인터 감쇠 패럴랙스** | `BRAND`, `PRODUCT`, `DIRECTION` 교대 시 계기판이 실제로 맞물려 돌아가는 촉감 확보 |
-| **03 작업 (`WorkStage`)** | `src/scenes.jsx` | `noth.in`의 **스티키 `difference` 타이틀 모핑** + **이중 감쇠 스크럽(`1.5` vs `3.0`)** + `spykercars`의 **슬롯 마스크 숫자 스트립(`NOMAD` 환율 리드아웃)** | 작업 사진을 쓰지 않고도 타이포와 기구 장치만으로 강한 시각적 밀도 형성 |
-| **04 문 (`DoorScene`)** | `src/scenes.jsx`, `src/App.jsx` | `spykercars`의 **`clip-path: inset()` 원형/사각 확장 포털** + `onlines`의 **가역 단어 리빌** (`SIX CITIES`) | 검은 문이 열리며 뒤쪽 고정 WebGL 지구 캔버스가 끊김 없이 드러남 |
-| **05 지구 (`GlobeScene`)** | `src/experience/Globe.jsx`, `src/App.jsx` | `spykercars`의 **궤도 각도 커서(`DRAG` + 현재 경도/각도 HUD)** + `noth.in`의 **미세 그레인/비네트 합성** | 지구를 돌릴 때 정밀 계기판을 조작하는 감각과 지부 카드 가독성 강화 |
+| **전역 스크롤·크롬** | `apps/meridian/src/app.jsx`, `apps/meridian/src/index.css` | `Lenis` 스무스 스크롤 + 디센더 보정 라인 마스크 + 듀얼 슬롯 버튼(`STYLE 1~3`, `WORK WITH US`) + 테마 전환 시 `backdrop-filter` 일시 해제 | 페이지 전체의 감속감과 버튼·타이포 마감 밀도 상승 |
+| **01 입구 (`EnterScene`)** | `apps/meridian/src/scenes.jsx` | `onlines`의 **포인터 스포트라이트 도트 매트릭스** 또는 **제로 DOM 블루프린트 격자 풀** + `spykercars`의 **스크롤 시 `scale(1 -> 0.88)` 후퇴 전환** | 글자 드래그·밀치기 주변으로 배경 격자/도트가 반응하며 입체적으로 열림 |
+| **02 하는 일 (`PracticeStage`)** | `apps/meridian/src/scenes.jsx` | `spykercars`의 **플로우 게이트 스테이지 전환** + **기계식 눈금 다이얼·오도미터 리드아웃** + **멀티 플레인 포인터 감쇠 패럴랙스** | `BRAND`, `PRODUCT`, `DIRECTION` 교대 시 계기판이 실제로 맞물려 돌아가는 촉감 확보 |
+| **03 작업 (`WorkStage`)** | `apps/meridian/src/scenes.jsx` | `noth.in`의 **스티키 `difference` 타이틀 모핑** + **이중 감쇠 스크럽(`1.5` vs `3.0`)** + `spykercars`의 **슬롯 마스크 숫자 스트립(`NOMAD` 환율 리드아웃)** | 작업 사진을 쓰지 않고도 타이포와 기구 장치만으로 강한 시각적 밀도 형성 |
+| **04 문 (`DoorScene`)** | `apps/meridian/src/scenes.jsx`, `apps/meridian/src/app.jsx` | `spykercars`의 **`clip-path: inset()` 원형/사각 확장 포털** + `onlines`의 **가역 단어 리빌** (`SIX CITIES`) | 검은 문이 열리며 뒤쪽 고정 WebGL 지구 캔버스가 끊김 없이 드러남 |
+| **05 지구 (`GlobeScene`)** | `apps/meridian/src/experience/globe.jsx`, `apps/meridian/src/app.jsx` | `spykercars`의 **궤도 각도 커서(`DRAG` + 현재 경도/각도 HUD)** + `noth.in`의 **미세 그레인/비네트 합성** | 지구를 돌릴 때 정밀 계기판을 조작하는 감각과 지부 카드 가독성 강화 |
 
 ---
 
 ## 6. 권장 구현 순서
 
 1. **기반 계층 (`lenis` + 단일 RAF 버스)**
-   - `pnpm add lenis` 설치 후 `src/App.jsx`의 스크롤 측정 루프와 `Lenis` RAF를 하나로 통합한다.
+   - `pnpm add lenis` 설치 후 `apps/meridian/src/app.jsx`의 스크롤 측정 루프와 `Lenis` RAF를 하나로 통합한다.
    - `prefers-reduced-motion: reduce` 환경에서는 스무스 스크롤과 연속 패럴랙스를 즉시 비활성화한다.
-2. **공통 마이크로 인터랙션 컴포넌트화 (`src/components/`)**
+2. **공통 마이크로 인터랙션 컴포넌트화 (`apps/meridian/src/components/`)**
    - `LineReveal`: `padding-bottom: 0.15em` / `margin-bottom: -0.15em` 마스크 텍스트 리빌.
    - `SlotButton`: 상하 복제 레이블 슬라이드 + 중앙 `clip-path` 와이프 버튼.
    - `OdometerReadout`: 자리수 스트립 스크롤 카운터(`WorkStage` 환율·`Globe` 좌표 겸용).
    - `BlueprintGrid` / `DotSpotlight`: CSS 마스크 기반 제로 DOM 반응형 배경.
-3. **장면별 고도화 (`src/scenes.jsx` -> `src/experience/Globe.jsx`)**
+3. **장면별 고도화 (`apps/meridian/src/scenes.jsx` -> `apps/meridian/src/experience/globe.jsx`)**
    - `EnterScene` 배경에 `DotSpotlight`와 스크롤 축소 후퇴(`scale`) 연결.
    - `PracticeStage`와 `WorkStage`에 감쇠 포인터 보간(`lerp 0.08`)과 오도미터 연결.
    - `DoorScene`에 `clip-path` 확장 전환을 적용해 `GlobeScene` 진입 경계를 매끄럽게 연결.

@@ -1,4 +1,4 @@
-import { SlotButton } from './SlotButton'
+import { SlotButton } from './slot-button'
 
 export function SceneNav({ labels, active, onPick }) {
   return (

@@ -1,27 +1,11 @@
 {
-  "name": "landing-page",
+  "name": "landings",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@react-three/drei": "^10.7.9",
-    "@react-three/fiber": "^9.8.2",
-    "lenis": "^1.3.28",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "three": "^0.187.0"
-  },
-  "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "oxlint": "^1.90.0",
-    "vite": "^8.3.6"
+    "dev": "pnpm --filter @landing/meridian dev",
+    "build": "pnpm --filter @landing/meridian build",
+    "lint": "pnpm -r lint",
+    "preview": "pnpm --filter @landing/meridian preview",
+    "dev:meridian": "pnpm --filter @landing/meridian dev"
   }
 }

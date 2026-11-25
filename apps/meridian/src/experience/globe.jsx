@@ -12,7 +12,7 @@ import {
 } from 'three'
 import { commitProgress, diveAmount, dossierOpen, getJourney } from './journey'
 import { buildCoastPositions, buildGraticulePositions, buildLandCanvas } from './graticule'
-import { GreenGlobe, OrbitRings } from './OrbitGlobe'
+import { GreenGlobe, OrbitRings } from './orbit-globe'
 import { pushAnchors } from './links'
 import { LOCK_Y, REGIONS, anchorPosition } from './regions'
 
