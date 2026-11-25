@@ -5,6 +5,9 @@ export function GlobeHud({ armed, visible, live = true }) {
 
   useEffect(() => {
     if (!live || (!armed && !visible)) return undefined
+    const coarse = window.matchMedia('(hover: none)').matches
+    if (coarse) return undefined
+
     let frame = 0
     const tick = () => {
       const raw = getComputedStyle(document.documentElement).getPropertyValue('--globe-yaw-deg').trim()

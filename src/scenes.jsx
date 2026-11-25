@@ -52,6 +52,7 @@ export function EnterScene({ progress, live = true, introBurst = 0 }) {
   useEffect(() => {
     if (!live) return undefined
     const state = sim.current
+    const animateDots = !window.matchMedia('(hover: none)').matches
     state.letters = letterRefs.current.map(() => ({ x: 0, y: 0, vx: 0, vy: 0 }))
     let frame = 0
     let running = true
@@ -88,24 +89,26 @@ export function EnterScene({ progress, live = true, introBurst = 0 }) {
         letter.y += letter.vy
         node.style.transform = `translate3d(${letter.x}px, ${letter.y}px, 0)`
       })
-      const time = performance.now() / 1000
-      const row = letterRefs.current[0]?.parentElement?.getBoundingClientRect()
-      const host = dotRefs.current[0]?.parentElement?.getBoundingClientRect()
-      const originX = row ? row.left + row.width / 2 : window.innerWidth / 2
-      const originY = row ? row.top + row.height / 2 : window.innerHeight / 2
-      dotRefs.current.forEach((dot, index) => {
-        if (!dot || !host) return
-        const angle = time * 0.28 + (index / DOTS.length) * Math.PI * 2
-        const baseX = Math.cos(angle) * 250
-        const baseY = Math.sin(angle) * 150
-        const dx = state.pointerX - (originX + baseX)
-        const dy = state.pointerY - (originY + baseY)
-        const dist = Math.hypot(dx, dy) || 1
-        const scatter = dist < 140 ? (140 - dist) * 0.45 : 0
-        const x = originX - host.left + baseX - (dx / dist) * scatter
-        const y = originY - host.top + baseY - (dy / dist) * scatter
-        dot.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      })
+      if (animateDots) {
+        const time = performance.now() / 1000
+        const row = letterRefs.current[0]?.parentElement?.getBoundingClientRect()
+        const host = dotRefs.current[0]?.parentElement?.getBoundingClientRect()
+        const originX = row ? row.left + row.width / 2 : window.innerWidth / 2
+        const originY = row ? row.top + row.height / 2 : window.innerHeight / 2
+        dotRefs.current.forEach((dot, index) => {
+          if (!dot || !host) return
+          const angle = time * 0.28 + (index / DOTS.length) * Math.PI * 2
+          const baseX = Math.cos(angle) * 250
+          const baseY = Math.sin(angle) * 150
+          const dx = state.pointerX - (originX + baseX)
+          const dy = state.pointerY - (originY + baseY)
+          const dist = Math.hypot(dx, dy) || 1
+          const scatter = dist < 140 ? (140 - dist) * 0.45 : 0
+          const x = originX - host.left + baseX - (dx / dist) * scatter
+          const y = originY - host.top + baseY - (dy / dist) * scatter
+          dot.style.transform = `translate3d(${x}px, ${y}px, 0)`
+        })
+      }
       frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
@@ -278,9 +281,37 @@ export function PracticeStage({ progress, live = true }) {
 export function WorkStage({ progress, live = true }) {
   const [shift, setShift] = useState(0)
   const [rate, setRate] = useState(1.084)
+  const [peek, setPeek] = useState(null)
   const drag = useRef(null)
   const bars = useRef([])
-  const cursor = Math.min(2, Math.max(0, progress * 2 + shift))
+  const cards = useRef([])
+  const peekRef = useRef(null)
+  const scrollCursor = Math.min(2, Math.max(0, progress * 2 + shift))
+  const cursor = scrollCursor
+
+  const pickPeek = (clientX, clientY) => {
+    let best = null
+    let bestDist = Infinity
+    cards.current.forEach((node, index) => {
+      if (!node) return
+      const rect = node.getBoundingClientRect()
+      if (clientY < rect.top - 8 || clientY > rect.bottom + 8) return
+      const anchor = rect.left + rect.width * 0.32
+      const dist = Math.abs(clientX - anchor)
+      if (dist < bestDist) {
+        bestDist = dist
+        best = index
+      }
+    })
+    if (bestDist > 220) return null
+    return best
+  }
+
+  const syncPeek = (next) => {
+    if (peekRef.current === next) return
+    peekRef.current = next
+    setPeek(next)
+  }
 
   useEffect(() => {
     if (!live) return undefined
@@ -322,11 +353,18 @@ export function WorkStage({ progress, live = true }) {
     <div
       className="deck"
       style={{ '--deck-p': progress }}
+      onPointerMove={(event) => {
+        if (drag.current != null) return
+        if (window.matchMedia('(hover: none)').matches) return
+        syncPeek(pickPeek(event.clientX, event.clientY))
+      }}
+      onPointerLeave={() => syncPeek(null)}
       onPointerDown={(event) => {
         if (event.target.closest('a, button')) return
         const deck = event.currentTarget
         deck.setAttribute('data-lenis-prevent', '')
         drag.current = event.clientX
+        syncPeek(null)
         const move = (next) => {
           if (drag.current == null) return
           const dx = next.clientX - drag.current
@@ -347,6 +385,8 @@ export function WorkStage({ progress, live = true }) {
       {copy.works.map((work, index) => {
         const delta = index - cursor
         const near = 1 - clamp01(Math.abs(delta))
+        const hovered = peek === index
+        const focus = Math.min(1, near + (hovered ? 0.38 : 0))
         const scrubOuter = delta * 36
         const scrubHeavy = delta * 28 * (1 + progress * 0.35)
         const scrubInner = near * (4 + progress * 12)
@@ -354,10 +394,14 @@ export function WorkStage({ progress, live = true }) {
         return (
           <article
             key={work.name}
+            ref={(node) => {
+              cards.current[index] = node
+            }}
             className="deck-card"
             style={{
               padding: slot.pad,
-              opacity: 0.28 + near * 0.72,
+              zIndex: hovered ? 4 : Math.round(focus * 3),
+              opacity: 0.28 + focus * 0.72,
               transform: `translate3d(${scrubOuter}vw, -50%, ${near * 70}px) rotateY(${delta * -9}deg)`,
             }}
           >
@@ -368,7 +412,7 @@ export function WorkStage({ progress, live = true }) {
                   transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${-scrubInner}px), calc(var(--py-smooth, var(--py, 0)) * ${scrubInner * 0.18}px), 0)`,
                 }}
               >
-                {index === 0 && <OdometerReadout value={rate} animate={near > 0.45} />}
+                {index === 0 && <OdometerReadout value={rate} animate={focus > 0.45} />}
                 {index === 1 && (
                   <div className="bars" aria-hidden="true">
                     {BARS.map((bar) => (
@@ -382,7 +426,7 @@ export function WorkStage({ progress, live = true }) {
                   </div>
                 )}
                 {index === 2 && (
-                  <div className={near > 0.72 ? 'ledger is-hot' : 'ledger'} aria-hidden="true">
+                  <div className={focus > 0.72 ? 'ledger is-hot' : 'ledger'} aria-hidden="true">
                     {LEDGER_ROWS.map((row) => (
                       <i key={row} />
                     ))}
@@ -390,7 +434,7 @@ export function WorkStage({ progress, live = true }) {
                 )}
                 <h2
                   className="deck-title"
-                  style={{ letterSpacing: `${-0.06 + near * 0.08}em`, transform: `scale(${0.94 + near * 0.06})` }}
+                  style={{ letterSpacing: `${-0.06 + focus * 0.08}em`, transform: `scale(${0.94 + focus * 0.06})` }}
                 >
                   {work.name}
                 </h2>

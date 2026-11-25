@@ -234,8 +234,8 @@ function Halos() {
       outer.current.rotation.y = -time * spin * 0.65
       outer.current.rotation.z = 0.35
     }
-    if (innerMaterial.current) innerMaterial.current.opacity = 0.62 - open * 0.34
-    if (outerMaterial.current) outerMaterial.current.opacity = 0.32 - open * 0.18
+    if (innerMaterial.current) innerMaterial.current.opacity = 0.34 - open * 0.22
+    if (outerMaterial.current) outerMaterial.current.opacity = 0.16 - open * 0.1
   })
 
   return (
@@ -246,7 +246,7 @@ function Halos() {
           ref={innerMaterial}
           color="#8eebff"
           transparent
-          opacity={0.62}
+          opacity={0.34}
           blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
@@ -258,7 +258,7 @@ function Halos() {
           ref={outerMaterial}
           color="#ffffff"
           transparent
-          opacity={0.32}
+          opacity={0.16}
           blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
@@ -349,9 +349,10 @@ function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
   useEffect(() => {
     const onDown = (event) => {
       if (!armedRef.current) return
-      if (event.pointerType !== 'mouse' || event.button !== 0) return
-      if (event.target.closest?.('a, button, .sheet')) return
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      if (event.target.closest?.('a, button, .sheet, .chrome-right, .mark, .deck, .enter-stage, .practice-stage, .door')) return
       drag.current.active = true
+      if (event.pointerType !== 'mouse') document.documentElement.setAttribute('data-lenis-prevent', '')
       drag.current.x = event.clientX
       drag.current.y = event.clientY
       drag.current.t = performance.now()
@@ -379,6 +380,7 @@ function GlobeScene({ concept = 'atmosphere', armed = false, active = true }) {
       if (!drag.current.active) return
       drag.current.active = false
       document.documentElement.classList.remove('is-turning')
+      document.documentElement.removeAttribute('data-lenis-prevent')
     }
     window.addEventListener('pointerdown', onDown)
     window.addEventListener('pointermove', onMove)

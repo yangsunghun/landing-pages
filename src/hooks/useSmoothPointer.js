@@ -24,18 +24,21 @@ export function useSmoothPointer(enabled = true, amount = 0.08) {
       }
     }
 
+    window.addEventListener('pointermove', onMove)
+
+    if (!smoothOn) {
+      return () => window.removeEventListener('pointermove', onMove)
+    }
+
     let frame = 0
     const tick = () => {
-      if (smoothOn) {
-        smooth.current.x = lerp(smooth.current.x, target.x, follow)
-        smooth.current.y = lerp(smooth.current.y, target.y, follow)
-        document.documentElement.style.setProperty('--px-smooth', smooth.current.x.toFixed(3))
-        document.documentElement.style.setProperty('--py-smooth', smooth.current.y.toFixed(3))
-      }
+      smooth.current.x = lerp(smooth.current.x, target.x, follow)
+      smooth.current.y = lerp(smooth.current.y, target.y, follow)
+      document.documentElement.style.setProperty('--px-smooth', smooth.current.x.toFixed(3))
+      document.documentElement.style.setProperty('--py-smooth', smooth.current.y.toFixed(3))
       frame = requestAnimationFrame(tick)
     }
 
-    window.addEventListener('pointermove', onMove)
     frame = requestAnimationFrame(tick)
     return () => {
       window.removeEventListener('pointermove', onMove)

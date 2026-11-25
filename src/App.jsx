@@ -229,7 +229,10 @@ export default function App() {
           <GlobeScene concept={concept} armed={play.armed} active={globeActive} />
         </Suspense>
       </Canvas>
-      <div className="veil" style={{ opacity: play.reveal * (0.75 + open * 0.25) }} />
+      <div
+        className={`veil${play.reveal > 0.32 ? ' is-globe-veil' : ''}`}
+        style={{ opacity: play.reveal * (0.75 + open * 0.25) }}
+      />
       <div className="face-cover" style={{ opacity: covering ? 1 : 0 }} />
 
       <SlotButton className="mark scene-tab" labelA={copy.brand} labelB="TOP" onClick={() => scrollTo(0)} />
