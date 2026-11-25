@@ -7,6 +7,9 @@ import { CONCEPTS } from './experience/concepts'
 import { REGIONS } from './experience/regions'
 import { dossierOpen, setTarget, subscribeJourney } from './experience/journey'
 import { copy } from './copy'
+import { GlobeHud } from './components/GlobeHud'
+import { useLenisScroll } from './hooks/useLenisScroll'
+import { useSmoothPointer } from './hooks/useSmoothPointer'
 import { DoorScene, EnterScene, PracticeStage, WorkStage } from './scenes'
 
 function Loader() {
@@ -64,6 +67,10 @@ export default function App() {
   const field = useRef(null)
   const scenes = useRef([])
   const swapLock = useRef(false)
+  const measureRef = useRef(() => {})
+
+  const { scrollTo } = useLenisScroll(() => measureRef.current())
+  useSmoothPointer()
 
   useEffect(() => {
     document.documentElement.dataset.concept = concept
@@ -71,17 +78,6 @@ export default function App() {
 
   useEffect(() => subscribeJourney(setJourney), [])
   useEffect(() => bindPainter((points) => paintCards(field.current, points)), [])
-
-  useEffect(() => {
-    const onMove = (event) => {
-      const x = (event.clientX / window.innerWidth) * 2 - 1
-      const y = (event.clientY / window.innerHeight) * 2 - 1
-      document.documentElement.style.setProperty('--px', x.toFixed(3))
-      document.documentElement.style.setProperty('--py', y.toFixed(3))
-    }
-    window.addEventListener('pointermove', onMove)
-    return () => window.removeEventListener('pointermove', onMove)
-  }, [])
 
   useEffect(() => {
     let frame = 0
@@ -111,18 +107,23 @@ export default function App() {
       document.documentElement.classList.toggle('is-globe', armed)
     }
 
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const onScroll = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(measure)
     }
 
+    measureRef.current = measure
     measure()
-    window.addEventListener('scroll', onScroll, { passive: true })
+
     window.addEventListener('resize', onScroll)
+    if (reduced) window.addEventListener('scroll', onScroll, { passive: true })
+
     return () => {
       cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
+      if (reduced) window.removeEventListener('scroll', onScroll)
+      measureRef.current = () => {}
       document.documentElement.classList.remove('is-globe')
     }
   }, [])
@@ -130,18 +131,21 @@ export default function App() {
   const selectConcept = (id) => {
     if (id === concept || swapLock.current) return
     swapLock.current = true
+    document.documentElement.classList.add('theme-switching')
     setCovering(true)
     window.setTimeout(() => {
       setConcept(id)
       window.setTimeout(() => {
         setCovering(false)
         swapLock.current = false
+        window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 850)
       }, 260)
     }, 240)
   }
 
   const goToScene = (index) => {
-    scenes.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const node = scenes.current[index]
+    if (node) scrollTo(node, { offset: 0 })
   }
 
   const door = play.local[3]
@@ -173,7 +177,7 @@ export default function App() {
       <div className="veil" style={{ opacity: play.reveal * (0.75 + open * 0.25) }} />
       <div className="face-cover" style={{ opacity: covering ? 1 : 0 }} />
 
-      <button className="mark" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+      <button className="mark" type="button" onClick={() => scrollTo(0)}>
         {copy.brand}
       </button>
 
@@ -273,8 +277,14 @@ export default function App() {
             </div>
             <p className="contact">
               {copy.contact}
-              <a href={`mailto:${copy.email}`}>{copy.email}</a>
+              <a className="slot-btn contact-mail" href={`mailto:${copy.email}`}>
+                <span className="slot-btn__mask">
+                  <span className="slot-btn__a">{copy.email}</span>
+                  <span className="slot-btn__b">{copy.contact}</span>
+                </span>
+              </a>
             </p>
+            <GlobeHud armed={play.armed} visible={play.reveal > 0.2} />
           </div>
         </section>
       </main>

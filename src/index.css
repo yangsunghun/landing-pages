@@ -61,6 +61,20 @@ html.is-turning .stage {
     radial-gradient(ellipse at 50% 46%, transparent 18%, rgba(0, 0, 0, 0.28) 52%, rgba(0, 0, 0, 0.72) 100%);
 }
 
+.veil::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+html.theme-switching .card {
+  backdrop-filter: none !important;
+}
+
 .mark,
 .tools,
 .hint,
@@ -200,9 +214,266 @@ main {
   overflow: hidden;
 }
 
+.enter-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.dot-spotlight {
+  --dot-x: 50%;
+  --dot-y: 50%;
+  --lit-x: 50%;
+  --lit-y: 50%;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(231, 238, 246, 0.22) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mask-image: radial-gradient(350px circle at var(--dot-x) var(--dot-y), #000 0%, transparent 100%);
+}
+
+.dot-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(231, 238, 246, 0.65) 1px, transparent 1px);
+  background-size: 14px 14px;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  mask-image: radial-gradient(64px circle at var(--lit-x) var(--lit-y), #000 0% 65%, transparent 100%);
+}
+
+.dot-spotlight.is-active::after {
+  opacity: 1;
+}
+
+.blueprint-grid {
+  --cell-w: 60px;
+  --cell-h: 60px;
+  --dash: 4px;
+  --step: 8px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.blueprint-grid::before,
+.blueprint-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.blueprint-grid::before {
+  mask-image:
+    repeating-linear-gradient(to bottom, #000 0 var(--dash), transparent var(--dash) var(--step)),
+    repeating-linear-gradient(to right, #000 0 1px, transparent 1px var(--cell-w));
+  mask-composite: intersect;
+}
+
+.blueprint-grid::after {
+  mask-image:
+    repeating-linear-gradient(to right, #000 0 var(--dash), transparent var(--dash) var(--step)),
+    repeating-linear-gradient(to bottom, #000 0 1px, transparent 1px var(--cell-h));
+  mask-composite: intersect;
+}
+
+.blueprint-grid__lit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cell-w);
+  height: var(--cell-h);
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.blueprint-grid__lit.is-lit {
+  opacity: 1;
+  transition: none;
+}
+
+.line-reveal {
+  display: block;
+  overflow: hidden;
+  margin-bottom: -0.15em;
+  padding-bottom: 0.15em;
+}
+
+.line-reveal__inner {
+  display: block;
+  transform: translateY(112%);
+  transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.line-reveal.is-on .line-reveal__inner {
+  transform: translateY(0);
+}
+
+.slot-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.slot-btn__mask {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  line-height: 1.1;
+}
+
+.slot-btn__a,
+.slot-btn__b {
+  display: block;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.slot-btn__b {
+  position: absolute;
+  inset: 0;
+  transform: translateY(115%);
+}
+
+.slot-btn:hover .slot-btn__a,
+.slot-btn:focus-visible .slot-btn__a,
+a.slot-btn:hover .slot-btn__a,
+a.slot-btn:focus-visible .slot-btn__a {
+  transform: translateY(-115%);
+}
+
+.slot-btn:hover .slot-btn__b,
+.slot-btn:focus-visible .slot-btn__b,
+a.slot-btn:hover .slot-btn__b,
+a.slot-btn:focus-visible .slot-btn__b {
+  transform: translateY(0);
+}
+
+.contact-mail {
+  margin-top: 6px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.odometer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.odometer__cell {
+  display: inline-block;
+  height: 1.1em;
+  overflow: hidden;
+  line-height: 1.1em;
+}
+
+.odometer__strip {
+  display: flex;
+  flex-direction: column;
+}
+
+.odometer__strip span {
+  height: 1.1em;
+}
+
+.odometer__dot {
+  padding: 0 0.02em;
+}
+
+.dial-wrap {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.dial-readout {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  color: rgba(231, 238, 246, 0.58);
+}
+
+.deck-card__inner {
+  will-change: transform;
+}
+
+.expanding-stage {
+  will-change: clip-path;
+}
+
+.door h2 span {
+  opacity: 0.14;
+  transition: opacity 0.35s ease;
+}
+
+.door h2 span.is-lit {
+  opacity: 1;
+}
+
+.globe-hud {
+  position: absolute;
+  right: 8vw;
+  bottom: 22vh;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  opacity: 0.35;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.globe-hud.is-armed {
+  opacity: 1;
+}
+
+.globe-hud__arc {
+  width: 72px;
+  height: 72px;
+  transform: rotate(calc(var(--globe-yaw-deg, 270) * 1deg));
+}
+
+.globe-hud__ring {
+  fill: none;
+  stroke: rgba(231, 238, 246, 0.22);
+  stroke-width: 1;
+}
+
+.globe-hud__sweep {
+  fill: none;
+  stroke: #e7eef6;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.globe-hud__label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+}
+
+.globe-hud__value {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
 .enter,
 .door {
   position: relative;
+  z-index: 1;
   width: 100%;
   padding: 0 8vw;
 }

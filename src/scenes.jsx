@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { copy } from './copy'
-
-function clamp01(value) {
-  return Math.min(1, Math.max(0, value))
-}
+import { BlueprintGrid } from './components/BlueprintGrid'
+import { DotSpotlight } from './components/DotSpotlight'
+import { LineReveal } from './components/LineReveal'
+import { OdometerReadout } from './components/OdometerReadout'
+import { clamp01, revealedByProgress } from './lib/motion'
 
 const LETTERS = copy.brand.split('')
 const DOTS = Array.from({ length: 22 }, (_, index) => index)
@@ -108,11 +109,19 @@ export function EnterScene({ progress }) {
     }
   }, [])
 
+  const retreat = 1 - clamp01(progress * 1.05) * 0.12
+
   return (
     <div
-      className="enter instrument"
-      style={{ opacity: 1 - leave, transform: `translate3d(0, ${-leave * 16}vh, 0)` }}
+      className="enter-stage"
+      style={{
+        transform: `scale(${retreat})`,
+        opacity: 1 - leave,
+      }}
     >
+      <DotSpotlight />
+      <BlueprintGrid />
+      <div className="enter instrument" style={{ transform: `translate3d(0, ${-leave * 16}vh, 0)` }}>
       <div className="orbit-dots" aria-hidden="true">
         {DOTS.map((dot) => (
           <i
@@ -142,35 +151,43 @@ export function EnterScene({ progress }) {
         ))}
       </h1>
       <p className="instrument-hint">{copy.enter.hint}</p>
-      <p style={{ opacity: line1 }}>{copy.enter.line1}</p>
-      <p style={{ opacity: line2 }}>{copy.enter.line2}</p>
+      <LineReveal show={line1 > 0.02}>{copy.enter.line1}</LineReveal>
+      <LineReveal show={line2 > 0.02}>{copy.enter.line2}</LineReveal>
+      </div>
     </div>
   )
 }
 
+const PLANE_MOUSE = [1.05, 0.68, 0.46]
+
 export function PracticeStage({ progress }) {
   const cursor = progress * (copy.practice.length - 1)
+  const dialReadout = (180 + progress * 200).toFixed(1)
 
   return (
     <div className="depth" style={{ '--p': progress }}>
       {copy.practice.map((item, index) => {
         const delta = cursor - index
         const near = 1 - clamp01(Math.abs(delta))
+        const factor = PLANE_MOUSE[index] ?? 0.5
         return (
           <article
             key={item.name}
             className="plane"
             style={{
               opacity: clamp01(delta + 1.15) * (0.22 + near * 0.78),
-              transform: `translate3d(calc(var(--px, 0) * 28px), ${(index - cursor) * 72}vh, ${near * 80}px) rotateX(${delta * -18}deg)`,
+              transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${36 * factor}px), calc(var(--py-smooth, var(--py, 0)) * ${24 * factor}px), ${near * 80}px) translate3d(0, ${(index - cursor) * 72}vh, 0) rotateX(${delta * -18}deg)`,
             }}
           >
             <div className="device">
               {index === 0 && (
-                <div className="dial" aria-hidden="true">
+                <div className="dial-wrap">
+                  <div className="dial" aria-hidden="true">
                   {TICKS.map((tick) => (
                     <i key={tick} style={{ transform: `rotate(${tick * (360 / TICKS.length)}deg)` }} />
                   ))}
+                  </div>
+                  <span className="dial-readout">{dialReadout}°</span>
                 </div>
               )}
               {index === 1 && (
@@ -201,19 +218,28 @@ export function PracticeStage({ progress }) {
 
 export function WorkStage({ progress }) {
   const [shift, setShift] = useState(0)
+  const [rate, setRate] = useState(1.084)
   const drag = useRef(null)
-  const readout = useRef(null)
   const bars = useRef([])
   const cursor = Math.min(2, Math.max(0, progress * 2 + shift))
 
   useEffect(() => {
     let frame = 0
+    let lastRate = 0
     const tick = () => {
-      const px = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 0
-      const py = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--py')) || 0
-      if (readout.current) {
-        const rate = 1.084 + px * 0.18 + Math.sin(performance.now() / 280) * 0.006
-        readout.current.textContent = rate.toFixed(4)
+      const px =
+        Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px-smooth')) ||
+        Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) ||
+        0
+      const py =
+        Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--py-smooth')) ||
+        Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--py')) ||
+        0
+      const now = performance.now()
+      const nextRate = 1.084 + px * 0.18 + Math.sin(now / 280) * 0.006
+      if (now - lastRate > 64) {
+        lastRate = now
+        setRate((value) => (Math.abs(value - nextRate) > 0.0002 ? nextRate : value))
       }
       bars.current.forEach((bar, index) => {
         if (!bar) return
@@ -251,15 +277,24 @@ export function WorkStage({ progress }) {
       {copy.works.map((work, index) => {
         const delta = index - cursor
         const near = 1 - clamp01(Math.abs(delta))
+        const scrubOuter = delta * 36
+        const scrubInner = near * (6 + progress * 14)
         return (
           <article
             key={work.name}
+            className="deck-card"
             style={{
               opacity: 0.28 + near * 0.72,
-              transform: `translate3d(${delta * 36}vw, 0, ${near * 70}px) rotateY(${delta * -9}deg)`,
+              transform: `translate3d(${scrubOuter}vw, 0, ${near * 70}px) rotateY(${delta * -9}deg)`,
             }}
           >
-            {index === 0 && <strong className="readout" ref={readout}>1.0840</strong>}
+            <div
+              className="deck-card__inner"
+              style={{
+                transform: `translate3d(calc(var(--px-smooth, var(--px, 0)) * ${-scrubInner}px), calc(var(--py-smooth, var(--py, 0)) * ${scrubInner * 0.35}px), 0)`,
+              }}
+            >
+            {index === 0 && <OdometerReadout value={rate} animate={near > 0.45} />}
             {index === 1 && (
               <div className="bars" aria-hidden="true">
                 {BARS.map((bar) => (
@@ -279,9 +314,15 @@ export function WorkStage({ progress }) {
                 ))}
               </div>
             )}
-            <h2>{work.name}</h2>
+            <h2
+              className="deck-title"
+              style={{ letterSpacing: `${-0.06 + near * 0.08}em`, transform: `scale(${0.94 + near * 0.06})` }}
+            >
+              {work.name}
+            </h2>
             <p>{work.text}</p>
             <span>{work.roles}</span>
+            </div>
           </article>
         )
       })}
@@ -292,11 +333,31 @@ export function WorkStage({ progress }) {
 
 export function DoorScene({ progress }) {
   const leave = clamp01((progress - 0.4) / 0.38)
+  const open = clamp01((progress - 0.06) / 0.72)
+  const inset = (1 - open) * 10
+  const round = (1 - open) * 14
+  const words = copy.door.title.split(/\s+/)
+  const lit = revealedByProgress(progress, words.length, 0, 0.73)
+
   return (
-    <div className="door" style={{ opacity: 1 - leave, transform: `translate3d(0, ${-leave * 14}vh, 0)` }}>
+    <div
+      className="door expanding-stage"
+      style={{
+        '--stage-open': open,
+        opacity: 1 - leave,
+        transform: `translate3d(0, ${-leave * 14}vh, 0)`,
+        clipPath: `inset(${inset}% round ${round}px)`,
+      }}
+    >
       <i className="portal" style={{ transform: `scale(${0.2 + progress * 2.8})`, opacity: 0.25 + progress * 0.55 }} />
-      <h2 style={{ letterSpacing: `${-0.05 + progress * 0.42}em` }}>{copy.door.title}</h2>
-      <p style={{ opacity: clamp01(progress / 0.2) * (1 - leave) }}>{copy.door.text}</p>
+      <h2>
+        {words.map((word, index) => (
+          <span key={word} className={index < lit ? 'is-lit' : ''}>
+            {word}{' '}
+          </span>
+        ))}
+      </h2>
+      <LineReveal show={clamp01(progress / 0.2) * (1 - leave) > 0.02}>{copy.door.text}</LineReveal>
     </div>
   )
 }

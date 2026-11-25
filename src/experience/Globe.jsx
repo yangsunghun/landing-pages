@@ -421,6 +421,8 @@ function GlobeScene({ concept = 'atmosphere', armed = false }) {
       drag.current.vp *= decay
     }
     node.rotation.y = LOCK_Y + dive * Math.PI * 2 * TURNS + drag.current.yaw
+    const yawDeg = (((drag.current.yaw * 180) / Math.PI) % 360 + 360) % 360
+    document.documentElement.style.setProperty('--globe-yaw-deg', yawDeg.toFixed(1))
     node.rotation.x = swing * 0.22 + drag.current.pitch
     node.rotation.z = swing * -0.12
     sky.current.x = node.rotation.x
