@@ -1189,6 +1189,29 @@ a.slot-btn:focus-visible .slot-btn__b {
   line-height: 1.5;
 }
 
+.globe-leadout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 14px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  transition: opacity 0.35s ease;
+}
+
+.globe-leadout__city {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: #f7fbff;
+}
+
+.globe-leadout__lng {
+  font-variant-numeric: tabular-nums;
+  color: rgba(231, 238, 246, 0.62);
+}
+
 .contact {
   position: absolute;
   left: 50%;

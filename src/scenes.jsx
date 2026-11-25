@@ -4,6 +4,7 @@ import { BlueprintGrid } from './components/BlueprintGrid'
 import { DotSpotlight } from './components/DotSpotlight'
 import { LineReveal } from './components/LineReveal'
 import { OdometerReadout } from './components/OdometerReadout'
+import { DoorEraserCanvas } from './components/DoorEraserCanvas'
 import { WorkMasthead } from './components/WorkMasthead'
 import { WORK_SLOTS } from './lib/editorial'
 import { clamp01, revealedByProgress } from './lib/motion'
@@ -315,6 +316,8 @@ export function WorkStage({ progress, live = true }) {
       style={{ '--deck-p': progress }}
       onPointerDown={(event) => {
         if (event.target.closest('a, button')) return
+        const deck = event.currentTarget
+        deck.setAttribute('data-lenis-prevent', '')
         drag.current = event.clientX
         const move = (next) => {
           if (drag.current == null) return
@@ -324,6 +327,7 @@ export function WorkStage({ progress, live = true }) {
         }
         const up = () => {
           drag.current = null
+          deck.removeAttribute('data-lenis-prevent')
           window.removeEventListener('pointermove', move)
           window.removeEventListener('pointerup', up)
         }
@@ -421,8 +425,8 @@ export function DoorScene({ progress, reveal = 0 }) {
           aria-hidden="true"
           style={{
             opacity: veilOpacity,
-            maskImage: `radial-gradient(circle at 50% 46%, transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
-            WebkitMaskImage: `radial-gradient(circle at 50% 46%, transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
+            maskImage: `radial-gradient(circle at calc(50% + var(--px-smooth, var(--px, 0)) * 7%) calc(46% + var(--py-smooth, var(--py, 0)) * 5%), transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
+            WebkitMaskImage: `radial-gradient(circle at calc(50% + var(--px-smooth, var(--px, 0)) * 7%) calc(46% + var(--py-smooth, var(--py, 0)) * 5%), transparent ${18 + hole * 52}vmin, #000 ${20 + hole * 54}vmin)`,
           }}
         />
       )}
@@ -433,7 +437,4 @@ export function DoorScene({ progress, reveal = 0 }) {
           </span>
         ))}
       </h2>
-      <LineReveal show={clamp01(progress / 0.2) * (1 - leave) > 0.02}>{copy.door.text}</LineReveal>
-    </div>
-  )
-}
+      <LineReveal show={clamp01(progress / 0.2) * (1

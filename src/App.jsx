@@ -10,6 +10,8 @@ import { copy } from './copy'
 import { ConceptTools } from './components/ConceptTools'
 import { CurtainLoader } from './components/CurtainLoader'
 import { GlobeHud } from './components/GlobeHud'
+import { GlobeLeadout } from './components/GlobeLeadout'
+import { setActiveRegion } from './experience/activeRegion'
 import { HalftoneVeil } from './components/HalftoneVeil'
 import { SceneNav } from './components/SceneNav'
 import { useHeaderOnDark } from './hooks/useHeaderOnDark'
@@ -35,6 +37,8 @@ function Loader() {
 function paintCards(root, points) {
   if (!root) return
   const ranked = [...points].sort((a, b) => b.facing - a.facing)
+  const lead = ranked[0]
+  setActiveRegion(lead?.id, lead?.facing ?? 0)
   const placed = []
   ranked.forEach((point) => {
     const card = root.querySelector(`[data-region="${point.id}"]`)
@@ -80,8 +84,8 @@ export default function App() {
   const { scrollTo, lenisRef } = useLenisScroll(() => measureRef.current())
   const sceneLive = useSceneInView(scenes)
   useHeaderOnDark(scenes)
-  const pointerOn = sceneLive.slice(0, 4).some(Boolean)
-  useSmoothPointer(pointerOn)
+  const smoothPointer = sceneLive.slice(0, 4).some(Boolean)
+  useSmoothPointer(smoothPointer)
 
   useEffect(() => {
     document.documentElement.dataset.concept = concept
@@ -252,7 +256,7 @@ export default function App() {
           }}
         >
           <div className="scene-sticky">
-            <PracticeStage progress={play.local[1]} />
+            <PracticeStage progress={play.local[1]} live={sceneLive[1]} />
           </div>
         </section>
 
@@ -292,6 +296,7 @@ export default function App() {
             <div className="globe-copy">
               <h2>{copy.officesLabel}</h2>
               <p>{copy.drag}</p>
+              <GlobeLeadout armed={play.armed} reveal={play.reveal} />
             </div>
             <p className="contact">
               {copy.contact}
