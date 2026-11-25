@@ -12,6 +12,34 @@ export const copy = {
     { name: 'PRODUCT', text: 'Screens and design systems, designed in the form that ships.' },
     { name: 'DIRECTION', text: 'The same impression, in every city.' },
   ],
+  spacesHeading: 'SPACES',
+  spacesHint: 'INSPECT · HOLD TO ZOOM',
+  spaces: [
+    {
+      index: '01',
+      name: 'CONCOURSE',
+      location: 'HAMBURG · TRANSIT',
+      spec: '84.0M SPAN',
+      text: 'Spatial identity and daylight structure across a glass-vaulted terminal.',
+      image: '/projects/concourse.jpg',
+    },
+    {
+      index: '02',
+      name: 'PAVILION',
+      location: 'CAPE TOWN · GALLERY',
+      spec: '42.0M VOID',
+      text: 'Monolithic circulation and exhibition rooms carved from dark concrete.',
+      image: '/projects/pavilion.jpg',
+    },
+    {
+      index: '03',
+      name: 'HORIZON',
+      location: 'ROTTERDAM · TOWER',
+      spec: '138M ELEV',
+      text: 'Architectural facade grid and environmental systems on the harborfront.',
+      image: '/projects/horizon.jpg',
+    },
+  ],
   works: [
     {
       name: 'NOMAD',
@@ -36,7 +64,7 @@ export const copy = {
   officesLabel: 'OFFICES',
   contact: 'WORK WITH US',
   email: 'seoul@meridian.example',
-  scenes: ['01', '02', '03', '04', '05'],
+  scenes: ['01', '02', '03', '04', '05', '06'],
   stylesLabel: 'Styles',
   offices: [
     { kicker: 'HQ', title: 'SEOUL', text: 'Where the brand and product standard is set.' },

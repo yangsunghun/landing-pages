@@ -360,7 +360,8 @@ main {
   height: 190vh;
 }
 
-.scene-solid:nth-child(2),
+.scene-practice,
+.scene-spaces,
 .scene-work {
   height: 300vh;
 }
@@ -1323,7 +1324,307 @@ html.is-turning .stage {
   }
 }
 
+.spaces-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 6vw 24px;
+  gap: 14px;
+  will-change: transform, opacity;
+}
+
+.spaces-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: rgba(231, 238, 246, 0.5);
+}
+
+.spaces-head__label {
+  color: rgba(247, 251, 255, 0.78);
+  font-weight: 500;
+}
+
+.spaces-triptych {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  height: min(68vh, 660px);
+}
+
+.spaces-blade {
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 64px;
+  overflow: hidden;
+  border: 1px solid rgba(231, 238, 246, 0.14);
+  background: #07090c;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    flex-grow 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.4s ease;
+}
+
+.spaces-blade:not([data-active='true']):hover {
+  border-color: rgba(231, 238, 246, 0.38);
+}
+
+.spaces-blade[data-active='true'] {
+  flex: 5.4 1 0%;
+  border-color: rgba(231, 238, 246, 0.28);
+  cursor: none;
+}
+
+.spaces-blade__media {
+  position: absolute;
+  inset: 0;
+}
+
+.spaces-blade__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.spaces-blade__img--base {
+  filter: grayscale(0.55) brightness(0.38) contrast(1.08);
+  transform: scale(1.05);
+  transition:
+    filter 0.7s ease,
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spaces-blade:not([data-active='true']):hover .spaces-blade__img--base {
+  filter: grayscale(0.3) brightness(0.52) contrast(1.08);
+}
+
+.spaces-blade[data-active='true'] .spaces-blade__img--base {
+  filter: grayscale(0.08) brightness(0.74) contrast(1.06);
+  transform: scale(1);
+}
+
+.spaces-blade__loupe-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  clip-path: circle(0px at 50% 50%);
+  will-change: clip-path;
+}
+
+.spaces-blade__img--zoom {
+  transform-origin: 0 0;
+  filter: brightness(1.14) contrast(1.18) saturate(1.06);
+  will-change: transform;
+}
+
+.spaces-loupe-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: 50%;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.58),
+    inset 0 0 22px rgba(255, 255, 255, 0.1);
+  will-change: transform, width, height, opacity;
+}
+
+.spaces-loupe-ring__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.spaces-loupe-ring__outer {
+  fill: none;
+  stroke: rgba(247, 251, 255, 0.72);
+  stroke-width: 1.1;
+}
+
+.spaces-loupe-ring__ticks {
+  fill: none;
+  stroke: rgba(247, 251, 255, 0.34);
+  stroke-width: 1;
+  stroke-dasharray: 2 7;
+}
+
+.spaces-loupe-ring__cross {
+  stroke: rgba(247, 251, 255, 0.65);
+  stroke-width: 1;
+}
+
+.spaces-loupe-ring__badge {
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+  color: #f7fbff;
+  background: rgba(5, 8, 12, 0.78);
+  border: 1px solid rgba(231, 238, 246, 0.24);
+  white-space: nowrap;
+}
+
+.spaces-blade__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0.04) 36%,
+    rgba(0, 0, 0, 0.14) 58%,
+    rgba(0, 0, 0, 0.82) 100%
+  );
+}
+
+.spaces-blade__spine {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 0;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+.spaces-blade[data-active='true'] .spaces-blade__spine {
+  opacity: 0;
+}
+
+.spaces-blade__spine span {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(231, 238, 246, 0.56);
+}
+
+.spaces-blade__spine strong {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  color: rgba(247, 251, 255, 0.86);
+}
+
+.spaces-blade__caption {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 22px 26px 26px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  transition:
+    opacity 0.45s ease 0.15s,
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
+}
+
+.spaces-blade[data-active='true'] .spaces-blade__caption {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.spaces-blade__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(231, 238, 246, 0.72);
+}
+
+.spaces-blade__body h2 {
+  margin: 0;
+  font-size: clamp(36px, 5.2vw, 72px);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  color: #f7fbff;
+}
+
+.spaces-blade__body p {
+  max-width: 30em;
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(231, 238, 246, 0.78);
+}
+
+@media (hover: none) {
+  .spaces-head__hint,
+  .spaces-blade__loupe-clip,
+  .spaces-loupe-ring {
+    display: none;
+  }
+
+  .spaces-blade[data-active='true'] {
+    cursor: default;
+  }
+
+  .spaces-blade[data-active='true'] .spaces-blade__img--base {
+    filter: brightness(0.88) contrast(1.06);
+  }
+}
+
 @media (max-width: 860px) {
+  .spaces-stage {
+    padding: 64px 22px 24px;
+  }
+
+  .spaces-triptych {
+    flex-direction: column;
+    height: 74vh;
+    gap: 10px;
+  }
+
+  .spaces-blade {
+    min-width: 0;
+    min-height: 52px;
+  }
+
+  .spaces-blade__spine {
+    flex-direction: row;
+    padding: 0 18px;
+  }
+
+  .spaces-blade__spine strong {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+
+  .spaces-blade__caption {
+    padding: 16px 18px 18px;
+  }
+
+  .spaces-blade__body p {
+    font-size: 13px;
+  }
+
   .sheet {
     padding: 22vh 22px 64px;
   }

@@ -18,6 +18,7 @@ import { useLenisScroll } from './hooks/use-lenis-scroll'
 import { useSceneInView } from './hooks/use-scene-in-view'
 import { useSmoothPointer } from './hooks/use-smooth-pointer'
 import { bindIntroGate } from './lib/intro-gate'
+import { SpacesStage } from './components/spaces-stage'
 import { DoorScene, EnterScene, PracticeStage, WorkStage } from './scenes'
 
 function Loader() {
@@ -79,7 +80,7 @@ function localProgress(node, view) {
 export default function App() {
   const [journey, setJourney] = useState(0)
   const [concept, setConcept] = useState(CONCEPTS[0].id)
-  const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0], reveal: 0, armed: false })
+  const [play, setPlay] = useState({ active: 0, local: [0, 0, 0, 0, 0, 0], reveal: 0, armed: false })
   const [introBurst, setIntroBurst] = useState(0)
   const field = useRef(null)
   const scenes = useRef([])
@@ -89,7 +90,7 @@ export default function App() {
   const { scrollTo, lenisRef } = useLenisScroll(() => measureRef.current())
   const sceneLive = useSceneInView(scenes)
   useHeaderOnDark(scenes)
-  const smoothPointer = sceneLive.slice(0, 4).some(Boolean)
+  const smoothPointer = sceneLive.slice(0, 5).some(Boolean)
   useSmoothPointer(smoothPointer)
 
   useEffect(() => {
@@ -137,19 +138,23 @@ export default function App() {
         const rect = node.getBoundingClientRect()
         if (rect.top <= view * 0.4 && rect.bottom >= view * 0.6) active = index
       })
-      const globe = scenes.current[4]
+      const doorProgress = local[4] ?? 0
+      const globeProgress = local[5] ?? 0
+      const globe = scenes.current[5]
       const globeRect = globe?.getBoundingClientRect()
-      const doorReveal = clamp01((local[3] - 0.48) / 0.42)
-      const globeReveal = clamp01((local[4] - 0.02) / 0.38)
+      const doorReveal = clamp01((doorProgress - 0.48) / 0.42)
+      const globeReveal = clamp01((globeProgress - 0.02) / 0.38)
       const reveal = Math.max(doorReveal, globeReveal)
       const armed = globeRect ? globeRect.top <= view * 0.08 && globeRect.bottom >= view * 0.8 : false
-      const journeyDrive = Math.max(doorReveal * 0.42, local[4] * 0.9)
+      const journeyDrive = Math.max(doorReveal * 0.42, globeProgress * 0.9)
       setTarget(journeyDrive * 0.16)
       setPlay((current) => {
         const sameActive = current.active === active
         const sameReveal = Math.abs(current.reveal - reveal) < 0.01
         const sameArmed = current.armed === armed
-        const sameLocal = current.local.every((value, index) => Math.abs(value - local[index]) < 0.004)
+        const sameLocal =
+          current.local.length === local.length &&
+          current.local.every((value, index) => Math.abs(value - local[index]) < 0.004)
         if (sameActive && sameReveal && sameArmed && sameLocal) return current
         return { active, local, reveal, armed }
       })
@@ -195,7 +200,7 @@ export default function App() {
     if (node) scrollTo(node, { offset: 0 })
   }
 
-  const door = play.local[3]
+  const door = play.local[4] ?? 0
   const open = dossierOpen(journey)
   const stylesOn = play.reveal > 0.65
   const globeActive = play.reveal > 0.05 || door > 0.42 || play.armed
@@ -254,24 +259,35 @@ export default function App() {
         </section>
 
         <section
-          className="scene scene-solid"
+          className="scene scene-solid scene-practice"
           ref={(node) => {
             scenes.current[1] = node
           }}
         >
           <div className="scene-sticky">
-            <PracticeStage progress={play.local[1]} live={sceneLive[1]} />
+            <PracticeStage progress={play.local[1] ?? 0} live={sceneLive[1]} />
+          </div>
+        </section>
+
+        <section
+          className="scene scene-solid scene-spaces"
+          ref={(node) => {
+            scenes.current[2] = node
+          }}
+        >
+          <div className="scene-sticky">
+            <SpacesStage progress={play.local[2] ?? 0} live={sceneLive[2]} />
           </div>
         </section>
 
         <section
           className="scene scene-solid scene-work"
           ref={(node) => {
-            scenes.current[2] = node
+            scenes.current[3] = node
           }}
         >
           <div className="scene-sticky">
-            <WorkStage progress={play.local[2]} live={sceneLive[2]} />
+            <WorkStage progress={play.local[3] ?? 0} live={sceneLive[3]} />
           </div>
         </section>
 
@@ -279,12 +295,12 @@ export default function App() {
           className="scene scene-door"
           data-section-dark=""
           ref={(node) => {
-            scenes.current[3] = node
+            scenes.current[4] = node
           }}
           style={{ background: `rgba(0, 0, 0, ${1 - clamp01((door - 0.5) / 0.4)})` }}
         >
           <div className="scene-sticky">
-            <DoorScene progress={play.local[3]} reveal={play.reveal} live={sceneLive[3]} />
+            <DoorScene progress={play.local[4] ?? 0} reveal={play.reveal} live={sceneLive[4]} />
           </div>
         </section>
 
@@ -292,7 +308,7 @@ export default function App() {
           className="scene scene-globe"
           data-section-dark=""
           ref={(node) => {
-            scenes.current[4] = node
+            scenes.current[5] = node
           }}
           aria-label={copy.officesLabel}
         >
